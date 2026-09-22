@@ -30,9 +30,13 @@ const TARGETS = {
   'win32-x64': 'x86_64-pc-windows-msvc'
 }
 
+// `--current` fetches this machine's daemon only; `--only <os-arch>` one platform.
+const onlyArg = process.argv.indexOf('--only')
 const only = process.argv.includes('--current')
   ? [`${process.platform}-${process.arch}`]
-  : Object.keys(TARGETS)
+  : onlyArg >= 0
+    ? [process.argv[onlyArg + 1]]
+    : Object.keys(TARGETS)
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'masterbus-daemons-'))
 let failed = 0
 for (const key of only) {
