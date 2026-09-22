@@ -51,7 +51,44 @@ tarball), set `api_listen` and `api_token` in its `config.ini`, and give
 the plugin the host, ports and token. Everything below works the same.
 
 A container is not required and not offered: the daemon needs the CAN
-interface or the USB device, which a container only complicates.
+interface or the USB device, which a container only complicates. (Signal K
+itself may well run in one: with host networking the container shares the
+host's CAN interface, and bundled mode works inside it.)
+
+### Switching between bundled and external
+
+In **Server → Plugin Config → MasterBus**, the first setting, _Where the
+MasterBus daemon runs_, selects the mode; fill in that mode's section and
+save. Signal K restarts the plugin on save: bundled mode stops its child
+daemon, external mode just disconnects. The other mode's settings are kept
+but ignored, so switching back later needs no retyping.
+
+**Going to external** needs a daemon already running on the machine wired
+to the bus, with its API enabled in its `config.ini`:
+
+```ini
+listen = 0.0.0.0:3009
+api_listen = 0.0.0.0:3010
+api_token = <something long and random>
+```
+
+Both ports must be reachable from the Signal K host. The token is
+mandatory on any address other than loopback; the daemon refuses to start
+without one. Give the plugin the host, the two ports and the same token.
+
+**Going to bundled** needs only the selection, provided the Signal K host
+is the one wired to the bus. Transport on auto-detect picks a plugged-in
+USB link, else the only CAN interface; set it explicitly when the machine
+has several.
+
+Two things are not automatic:
+
+- The modes do not share a mapping. Bundled mode edits `mapping.json`
+  under the plugin's data directory; external mode edits the one on the
+  daemon's machine, through its API. Copy the file across when moving.
+- A generic "Signal K over TCP" data connection to port 3009, left over from
+  running the daemon as a sidecar, must be disabled, or every value arrives
+  twice with two different sources.
 
 ## Telling it what to publish
 
