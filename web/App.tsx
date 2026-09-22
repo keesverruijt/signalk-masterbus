@@ -206,6 +206,9 @@ export function App() {
   return (
     <div className="app">
       <header className="top">
+        <a className="button" href="/admin/" title="Back to the Signal K admin UI">
+          ← Signal K
+        </a>
         <h1>MasterBus mapping</h1>
         <div className={`status${summary?.error ? ' err' : ''}`}>{busy ?? statusText()}</div>
         {dirty && <span className="dirty">unsaved changes</span>}

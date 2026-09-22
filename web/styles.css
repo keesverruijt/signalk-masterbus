@@ -1,32 +1,19 @@
+/* The Signal K admin UI's palette (CoreUI: body #e4e5e6, panels white,
+   borders #c2cfd6, text #29363d, primary #003399), always light like it. */
 :root {
-  --bg: #f6f7f9;
+  --bg: #e4e5e6;
   --panel: #ffffff;
-  --text: #1c2430;
-  --muted: #667085;
-  --line: #e2e6ec;
-  --accent: #12395b;
+  --text: #29363d;
+  --muted: #73818f;
+  --line: #c2cfd6;
+  --accent: #003399;
   --accent-text: #ffffff;
-  --ok: #1a7f5a;
-  --warn: #b7791f;
-  --err: #c0392b;
-  --sel: #e8f0f8;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color-scheme: light dark;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121519;
-    --panel: #1b2027;
-    --text: #e6e9ee;
-    --muted: #98a2b3;
-    --line: #2b323c;
-    --accent: #5cc8a8;
-    --accent-text: #0d1b16;
-    --ok: #5cc8a8;
-    --warn: #e2b04a;
-    --err: #ef6c5c;
-    --sel: #243040;
-  }
+  --ok: #3a9d5d;
+  --warn: #a67c00;
+  --err: #d9534f;
+  --sel: #f0f3f5;
+  --mono: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  color-scheme: light;
 }
 * {
   box-sizing: border-box;
@@ -34,10 +21,12 @@
 body {
   margin: 0;
   font:
-    14px/1.4 system-ui,
-    -apple-system,
+    14px/1.5 -apple-system,
+    BlinkMacSystemFont,
     'Segoe UI',
     Roboto,
+    'Helvetica Neue',
+    Arial,
     sans-serif;
   background: var(--bg);
   color: var(--text);
@@ -63,6 +52,18 @@ button.primary {
 button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+a.button {
+  display: inline-block;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 10px;
+  color: var(--accent);
+  text-decoration: none;
+  background: var(--panel);
+}
+a.button:hover {
+  background: var(--sel);
 }
 input[type='text'],
 input[type='number'],
