@@ -177,7 +177,9 @@ export const SCHEMA = {
   }
 }
 
+// The installer code is a number, and the form has no password widget for
+// numbers ("No widget 'password' for type 'number'" takes the whole page
+// down), so only the token is masked.
 export const UI_SCHEMA = {
-  external: { token: { 'ui:widget': 'password' } },
-  installerCode: { 'ui:widget': 'password' }
+  external: { token: { 'ui:widget': 'password' } }
 }
