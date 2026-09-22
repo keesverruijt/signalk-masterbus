@@ -11,3 +11,4 @@ eslint.config.mjs
 prettier.config.mjs
 vitest.config.ts
 vite.config.ts
+scripts/

@@ -32,9 +32,9 @@ cd ~/.signalk
 npm install signalk-masterbus
 ```
 
-The daemon binary for your platform (Linux x64/arm64/armv7, macOS, Windows)
-comes along as an optional dependency; nothing else to download. Enable
-the plugin under **Server → Plugin Config → MasterBus**.
+The package bundles the daemon binary for every supported platform (Linux
+x64/arm64/armv7, macOS, Windows), about 10 MB in all; nothing else to
+download. Enable the plugin under **Server → Plugin Config → MasterBus**.
 
 ## Two ways to run it
 
@@ -94,10 +94,16 @@ need it log in first. Leave it blank otherwise.
 
 ```sh
 npm install
-npm run build        # plugin/ (tsc) and public/ (vite)
+npm run build          # plugin/ (tsc) and public/ (vite)
 npm test
 npm run lint
+npm run fetch-daemons  # bin/<os>-<arch>/ from the masterbus release package.json pins
 ```
+
+`fetch-daemons` downloads the release tarballs of the masterbus version
+named by `masterbusDaemon` in `package.json` and unpacks the daemon for
+each platform into `bin/`; `--current` fetches only this machine's. It
+runs automatically before `npm publish`.
 
 To run against a daemon without hardware, build masterbus with the
 `fake-bus` feature:

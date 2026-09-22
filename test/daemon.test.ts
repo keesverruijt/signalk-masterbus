@@ -4,7 +4,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { DEFAULTS } from '../src/config.js'
-import { DaemonManager, platformPackage, renderConfigIni, resolveBinary } from '../src/daemon.js'
+import { DaemonManager, platformDir, renderConfigIni, resolveBinary } from '../src/daemon.js'
 
 const dirs: string[] = []
 function tmp(): string {
@@ -59,13 +59,21 @@ describe('renderConfigIni', () => {
 })
 
 describe('resolveBinary', () => {
-  it('prefers a configured path and explains a missing package', () => {
+  it('prefers a configured path, else the bundled binary under bin/', () => {
     const dir = tmp()
     const bin = fakeDaemon(dir, 'exit 0')
     expect(resolveBinary(bin)).toBe(bin)
     expect(() => resolveBinary(path.join(dir, 'nope'))).toThrow('does not exist')
-    expect(() => resolveBinary('')).toThrow(platformPackage())
-    expect(platformPackage('linux', 'arm64')).toBe('signalk-masterbus-daemon-linux-arm64')
+    // Resolved relative to the plugin's compiled code: <root>/plugin/daemon.js
+    // looks in <root>/bin/<os>-<arch>/.
+    const from = `file://${path.join(dir, 'plugin', 'daemon.js')}`
+    expect(() => resolveBinary('', from)).toThrow(`bin/${platformDir()}`)
+    const bundled = path.join(dir, 'bin', platformDir())
+    fs.mkdirSync(bundled, { recursive: true })
+    const exe = process.platform === 'win32' ? 'masterbus-signalk.exe' : 'masterbus-signalk'
+    fs.writeFileSync(path.join(bundled, exe), '')
+    expect(resolveBinary('', from)).toBe(path.join(bundled, exe))
+    expect(platformDir('linux', 'arm64')).toBe('linux-arm64')
   })
 })
 

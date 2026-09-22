@@ -1,6 +1,7 @@
 {
   "name": "signalk-masterbus",
   "version": "0.1.0",
+  "masterbusDaemon": "0.4.0",
   "description": "Mastervolt MasterBus for Signal K: publish battery, charger and inverter values, edit the mapping in the browser, and switch devices from Signal K",
   "main": "plugin/index.js",
   "type": "module",
@@ -14,7 +15,8 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"web/**/*.{ts,tsx,css,html}\" \"**/*.md\" \"*.{json,yml,yaml,mjs,js}\" \".github/**/*.{yml,yaml}\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"web/**/*.{ts,tsx,css,html}\" \"**/*.md\" \"*.{json,yml,yaml,mjs,js}\" \".github/**/*.{yml,yaml}\"",
     "check": "npm run lint && npm run format:check && npm run build && npm test",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run fetch-daemons && npm run build",
+    "fetch-daemons": "node scripts/fetch-daemons.mjs"
   },
   "keywords": [
     "signalk-node-server-plugin",
@@ -38,19 +40,12 @@
   "files": [
     "plugin/**/*",
     "public/**/*",
+    "bin/**/*",
     "docs/**/*"
   ],
   "engines": {
     "node": ">=22",
     "signalk": ">=2.24.0"
-  },
-  "optionalDependencies": {
-    "signalk-masterbus-daemon-linux-x64": "0.4.0",
-    "signalk-masterbus-daemon-linux-arm64": "0.4.0",
-    "signalk-masterbus-daemon-linux-arm": "0.4.0",
-    "signalk-masterbus-daemon-darwin-x64": "0.4.0",
-    "signalk-masterbus-daemon-darwin-arm64": "0.4.0",
-    "signalk-masterbus-daemon-win32-x64": "0.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

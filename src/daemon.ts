@@ -1,28 +1,25 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import fs from 'node:fs'
-import { createRequire } from 'node:module'
 import path from 'node:path'
 import readline from 'node:readline'
+import { fileURLToPath } from 'node:url'
 
 import type { BundledConfig } from './config.js'
 
-/**
- * npm package that carries the daemon binary for this platform. Published
- * from the masterbus repository's release workflow, one per target, and
- * listed as `optionalDependencies` so npm installs only the matching one.
- */
-export function platformPackage(
+/** The directory under `bin/` that carries this platform's daemon. */
+export function platformDir(
   platform: string = process.platform,
   arch: string = process.arch
 ): string {
-  return `signalk-masterbus-daemon-${platform}-${arch}`
+  return `${platform}-${arch}`
 }
 
 /**
- * Where the daemon binary is: the configured path if any, else the platform
- * package's. Throws with a message fit for the plugin status when neither
- * exists.
+ * Where the daemon binary is: the configured path if any, else the bundled
+ * one under `bin/<os>-<arch>/` next to `plugin/` (put there by
+ * `scripts/fetch-daemons.mjs` before publishing). Throws with a message fit
+ * for the plugin status when neither exists.
  */
 export function resolveBinary(binaryPath: string, from: string = import.meta.url): string {
   if (binaryPath.trim()) {
@@ -30,20 +27,15 @@ export function resolveBinary(binaryPath: string, from: string = import.meta.url
     if (!fs.existsSync(p)) throw new Error(`the configured binary ${p} does not exist`)
     return p
   }
-  const pkg = platformPackage()
-  const require = createRequire(from)
-  let manifest: string
-  try {
-    manifest = require.resolve(`${pkg}/package.json`)
-  } catch {
+  const exe = process.platform === 'win32' ? 'masterbus-signalk.exe' : 'masterbus-signalk'
+  const root = path.resolve(path.dirname(fileURLToPath(from)), '..')
+  const bin = path.join(root, 'bin', platformDir(), exe)
+  if (!fs.existsSync(bin)) {
     throw new Error(
-      `no bundled daemon for ${process.platform}/${process.arch} (package ${pkg} is not ` +
-        'installed); set a binary path, or use external mode'
+      `no bundled daemon for ${platformDir()} (${bin} is missing; in a development checkout ` +
+        'run `npm run fetch-daemons`); set a binary path, or use external mode'
     )
   }
-  const exe = process.platform === 'win32' ? 'masterbus-signalk.exe' : 'masterbus-signalk'
-  const bin = path.join(path.dirname(manifest), exe)
-  if (!fs.existsSync(bin)) throw new Error(`${pkg} is installed but has no ${exe}`)
   return bin
 }
 
