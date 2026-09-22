@@ -69,14 +69,24 @@ export function Editor(props: {
     return e
   }
 
-  // Validate on every change, keeping only the latest answer.
+  // Validate on every change, keeping only the latest answer. A truth
+  // refusal brings what the conventional label meanings already say; those
+  // are filled in so only the ambiguous labels are left to decide.
   useEffect(() => {
     const mine = ++seq.current
     const t = setTimeout(() => {
       api
         .validate(device.serial, field.id, entry())
         .then((v) => {
-          if (mine === seq.current) setValidation(v)
+          if (mine !== seq.current) return
+          setValidation(v)
+          if (!v.ok && v.refusal.kind === 'truth' && v.refusal.truthPartial) {
+            const partial = v.refusal.truthPartial
+            setTruth((cur) => {
+              const merged = { ...partial, ...cur }
+              return Object.keys(merged).length === Object.keys(cur).length ? cur : merged
+            })
+          }
         })
         .catch(() => {
           if (mine === seq.current) setValidation(null)
@@ -99,7 +109,16 @@ export function Editor(props: {
   const hint = () => {
     if (!validation) return null
     if (!validation.ok) {
-      return <div className="hint err">{validation.refusal.message}</div>
+      const undecided =
+        validation.refusal.kind === 'truth' ? field.options.filter((l) => !(l in truth)) : []
+      return (
+        <div className="hint err">
+          {validation.refusal.kind === 'truth' && undecided.length > 0
+            ? `boolean leaf: say whether ${undecided.join(', ')} mean${undecided.length === 1 ? 's' : ''} true or false`
+            : validation.refusal.message}
+          {validation.refusal.hint && <div>⚠ {validation.refusal.hint}</div>}
+        </div>
+      )
     }
     const bits: string[] = []
     if (validation.boolean || Object.keys(validation.truth).length > 0) {
@@ -188,14 +207,23 @@ export function Editor(props: {
             <div className="table-edit">
               {field.options.map((label) => (
                 <label key={label} className="row">
-                  <input
-                    type="checkbox"
-                    checked={truth[label] ?? false}
-                    onChange={(e) => {
-                      setTruth({ ...truth, [label]: e.target.checked })
-                    }}
-                  />
                   {label}
+                  <select
+                    value={label in truth ? String(truth[label]) : ''}
+                    onChange={(e) => {
+                      if (e.target.value === '') {
+                        setTruth(
+                          Object.fromEntries(Object.entries(truth).filter(([k]) => k !== label))
+                        )
+                      } else {
+                        setTruth({ ...truth, [label]: e.target.value === 'true' })
+                      }
+                    }}
+                  >
+                    <option value="">undecided</option>
+                    <option value="true">true</option>
+                    <option value="false">false</option>
+                  </select>
                 </label>
               ))}
             </div>

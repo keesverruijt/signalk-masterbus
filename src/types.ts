@@ -120,7 +120,15 @@ export type Validation =
     }
   | {
       ok: false
-      refusal: { kind: 'units' | 'truth' | 'empty'; message: string; labels?: string[] }
+      refusal: {
+        kind: 'path' | 'units' | 'truth' | 'empty'
+        message: string
+        labels?: string[]
+        /** For `truth`: what the conventional label meanings already say. */
+        truthPartial?: Record<string, boolean>
+        /** For `truth` on three or more labels: the mode leaf to prefer. */
+        hint?: string | null
+      }
     }
 
 export interface Login {
