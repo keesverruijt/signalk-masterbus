@@ -18,6 +18,7 @@ import type {
 const BASE = '/plugins/signalk-masterbus'
 
 export interface Summary {
+  versions?: { plugin: string; daemon: string }
   mode: 'bundled' | 'external' | null
   connected: boolean
   daemon: { running: boolean; recentLog: string[] } | null

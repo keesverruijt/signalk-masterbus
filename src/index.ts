@@ -1,4 +1,6 @@
+import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import type { Plugin, PluginRouter, ServerAPI } from '@signalk/server-api'
 
@@ -11,6 +13,20 @@ import { StreamForwarder } from './stream-forwarder.js'
 import type { Mapping, Status } from './types.js'
 
 export const PLUGIN_ID = 'signalk-masterbus'
+
+/** This plugin's own version and the masterbus version it bundles. */
+export const VERSIONS: { plugin: string; daemon: string } = (() => {
+  try {
+    const own = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json')
+    const pkg = JSON.parse(fs.readFileSync(own, 'utf8')) as {
+      version?: string
+      masterbusDaemon?: string
+    }
+    return { plugin: pkg.version ?? '?', daemon: pkg.masterbusDaemon ?? '?' }
+  } catch {
+    return { plugin: '?', daemon: '?' }
+  }
+})()
 
 /** How often the daemon is asked for its status and the mapping re-synced. */
 const POLL_MS = 10_000
@@ -42,6 +58,7 @@ export default function plugin(app: ServerAPI): Plugin {
   let generation = 0
 
   const summary = (): Record<string, unknown> => ({
+    versions: VERSIONS,
     mode: config?.mode ?? null,
     connected: client !== null && lastStatus !== null,
     daemon: daemon ? { running: daemon.running, recentLog: daemon.recentLog } : null,
@@ -53,7 +70,9 @@ export default function plugin(app: ServerAPI): Plugin {
 
   const statusLine = (s: Status): string => {
     const where =
-      config?.mode === 'bundled' ? 'Bundled daemon' : `Daemon at ${client?.endpoint.host}`
+      config?.mode === 'bundled'
+        ? `Bundled daemon ${s.version}`
+        : `Daemon ${s.version} at ${client?.endpoint.host}`
     const problems =
       s.diagnostics.errors > 0
         ? `; ${s.diagnostics.errors} mapping entr${s.diagnostics.errors === 1 ? 'y' : 'ies'} skipped, see the editor`
@@ -176,7 +195,7 @@ export default function plugin(app: ServerAPI): Plugin {
     name: 'MasterBus',
     description:
       'Mastervolt MasterBus: publish battery, charger and inverter values, edit the mapping ' +
-      'in the browser, and switch devices from Signal K.',
+      `in the browser, and switch devices from Signal K. Bundles masterbus-signalk ${VERSIONS.daemon}.`,
     schema: SCHEMA,
     uiSchema: UI_SCHEMA,
 

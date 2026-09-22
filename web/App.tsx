@@ -188,8 +188,10 @@ export function App() {
     if (summary.error) return summary.error
     const s = summary.status
     if (!summary.connected || !s) return 'The plugin is not connected to a MasterBus daemon'
+    const v = summary.versions
     return (
-      `${summary.mode === 'bundled' ? 'Bundled daemon' : 'External daemon'} on ${s.transport}: ` +
+      (v ? `plugin ${v.plugin} · ` : '') +
+      `${summary.mode === 'bundled' ? 'bundled' : 'external'} daemon ${s.version} on ${s.transport}: ` +
       `${s.devices} device${s.devices === 1 ? '' : 's'}, ${s.mapped.fields} mapped, ` +
       `${s.streaming} streaming, ${s.clients} stream client${s.clients === 1 ? '' : 's'}`
     )
