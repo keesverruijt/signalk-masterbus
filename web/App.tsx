@@ -23,6 +23,33 @@ function clone(m: Mapping): Mapping {
   return JSON.parse(JSON.stringify(m)) as Mapping
 }
 
+/**
+ * A mapping as text, in a form that does not depend on key order or on
+ * flags at their default. The daemon serialises with sorted keys and
+ * leaves out `invert: false`, `put: false` and empty tables, so a saved
+ * mapping came back looking different from the one just sent, and the
+ * editor kept saying "unsaved changes".
+ */
+function canonical(m: Mapping): string {
+  const tidy = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(tidy)
+    if (v && typeof v === 'object') {
+      const out: Record<string, unknown> = {}
+      for (const k of Object.keys(v).sort()) {
+        const x = (v as Record<string, unknown>)[k]
+        if (x === false || x === undefined || x === null) continue
+        if (typeof x === 'object' && !Array.isArray(x) && Object.keys(x).length === 0) {
+          continue
+        }
+        out[k] = tidy(x)
+      }
+      return out
+    }
+    return v
+  }
+  return JSON.stringify(tidy(m))
+}
+
 export function App() {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [devices, setDevices] = useState<Device[]>([])
@@ -36,7 +63,7 @@ export function App() {
   const [notice, setNotice] = useState<string | null>(null)
 
   const dirty = useMemo(
-    () => saved !== null && mapping !== null && JSON.stringify(saved) !== JSON.stringify(mapping),
+    () => saved !== null && mapping !== null && canonical(saved) !== canonical(mapping),
     [saved, mapping]
   )
 
@@ -112,7 +139,10 @@ export function App() {
     setBusy('Saving…')
     try {
       const r = await api.putMapping(mapping)
-      setSaved(clone(mapping))
+      // Continue from the daemon's copy, which is what is on disk.
+      const m = await api.mapping()
+      setSaved(m)
+      setMapping(clone(m))
       setDiagnostics(r.diagnostics)
       const errors = r.diagnostics.filter((d) => d.severity === 'error').length
       setNotice(
