@@ -1,0 +1,80 @@
+{
+  "name": "signalk-masterbus",
+  "version": "0.1.0",
+  "description": "Mastervolt MasterBus for Signal K: publish battery, charger and inverter values, edit the mapping in the browser, and switch devices from Signal K",
+  "main": "plugin/index.js",
+  "type": "module",
+  "signalk-plugin-enabled-by-default": true,
+  "scripts": {
+    "build": "tsc && vite build",
+    "build:plugin": "tsc",
+    "build:web": "vite build",
+    "test": "vitest run",
+    "lint": "eslint 'src/**/*.ts' 'test/**/*.ts' 'web/**/*.ts' 'web/**/*.tsx'",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"web/**/*.{ts,tsx,css,html}\" \"**/*.md\" \"*.{json,yml,yaml,mjs,js}\" \".github/**/*.{yml,yaml}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"web/**/*.{ts,tsx,css,html}\" \"**/*.md\" \"*.{json,yml,yaml,mjs,js}\" \".github/**/*.{yml,yaml}\"",
+    "check": "npm run lint && npm run format:check && npm run build && npm test",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-webapp",
+    "signalk-category-hardware",
+    "mastervolt",
+    "masterbus",
+    "marine",
+    "battery",
+    "inverter"
+  ],
+  "signalk": {
+    "displayName": "MasterBus",
+    "appIcon": "assets/icon.svg",
+    "webapp": {
+      "name": "MasterBus mapping",
+      "description": "Choose which MasterBus fields publish to which Signal K paths",
+      "location": "/signalk-masterbus/"
+    }
+  },
+  "files": [
+    "plugin/**/*",
+    "public/**/*",
+    "docs/**/*"
+  ],
+  "engines": {
+    "node": ">=22",
+    "signalk": ">=2.24.0"
+  },
+  "optionalDependencies": {
+    "signalk-masterbus-daemon-linux-x64": "0.4.0",
+    "signalk-masterbus-daemon-linux-arm64": "0.4.0",
+    "signalk-masterbus-daemon-linux-arm": "0.4.0",
+    "signalk-masterbus-daemon-darwin-x64": "0.4.0",
+    "signalk-masterbus-daemon-darwin-arm64": "0.4.0",
+    "signalk-masterbus-daemon-win32-x64": "0.4.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@signalk/server-api": "^2.33.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keesverruijt/signalk-masterbus.git"
+  },
+  "author": "Kees Verruijt",
+  "license": "Apache-2.0"
+}

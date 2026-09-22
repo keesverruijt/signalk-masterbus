@@ -1,0 +1,13 @@
+.git/
+.github/
+node_modules/
+*.tgz
+src/
+test/
+web/
+tsconfig.json
+tsconfig.eslint.json
+eslint.config.mjs
+prettier.config.mjs
+vitest.config.ts
+vite.config.ts

@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    // "type": "module" in package.json: the emitted plugin/ is real ESM, and
+    // nodenext resolution makes tsc enforce Node's rules (relative imports
+    // carry the emitted `.js` extension).
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["ES2022"],
+    "outDir": "plugin",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*.ts"],
+  // web/ is a browser bundle (JSX + DOM types) with its own tsconfig.
+  "exclude": ["node_modules", "plugin", "test", "web"]
+}
