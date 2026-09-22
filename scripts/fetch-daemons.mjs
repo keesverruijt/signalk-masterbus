@@ -32,6 +32,25 @@ const TARGETS = {
 
 // `--current` fetches this machine's daemon only; `--only <os-arch>` one platform.
 const onlyArg = process.argv.indexOf('--only')
+/** Fetch a URL, retrying a few times on a transient failure (GitHub's
+ * release downloads occasionally answer 5xx). */
+async function download(url, attempts = 4) {
+  let last
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      const res = await fetch(url, { redirect: 'follow' })
+      if (res.ok) return Buffer.from(await res.arrayBuffer())
+      if (res.status >= 400 && res.status < 500) throw new Error(`HTTP ${res.status}`)
+      last = new Error(`HTTP ${res.status}`)
+    } catch (err) {
+      if (err instanceof Error && /^HTTP 4/.test(err.message)) throw err
+      last = err
+    }
+    if (i < attempts) await new Promise((r) => setTimeout(r, 2000 * i))
+  }
+  throw last instanceof Error ? last : new Error(String(last))
+}
+
 const only = process.argv.includes('--current')
   ? [`${process.platform}-${process.arch}`]
   : onlyArg >= 0
@@ -47,10 +66,8 @@ for (const key of only) {
   const url = `https://github.com/keesverruijt/masterbus/releases/download/v${version}/masterbus-${target}.tar.gz`
   process.stdout.write(`${key}: ${url} … `)
   try {
-    const res = await fetch(url, { redirect: 'follow' })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const tarball = path.join(tmp, `${target}.tar.gz`)
-    fs.writeFileSync(tarball, Buffer.from(await res.arrayBuffer()))
+    fs.writeFileSync(tarball, await download(url))
     const unpack = path.join(tmp, target)
     fs.mkdirSync(unpack, { recursive: true })
     execFileSync('tar', ['xzf', tarball, '-C', unpack])
