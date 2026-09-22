@@ -71,5 +71,12 @@
     "url": "git+https://github.com/keesverruijt/signalk-masterbus.git"
   },
   "author": "Kees Verruijt",
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://github.com/keesverruijt/signalk-masterbus#readme",
+  "bugs": {
+    "url": "https://github.com/keesverruijt/signalk-masterbus/issues"
+  }
 }
