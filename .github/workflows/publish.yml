@@ -1,5 +1,10 @@
 name: publish
 
+# On a v* tag: fetch the pinned masterbus daemons, build, test, create the
+# GitHub release with the packed tarball (what a hand install uses), then
+# publish to npm. The npm step needs trusted publishing to be configured
+# for the package on npmjs.com, which in turn needs the package to exist
+# there: the very first version is published by hand.
 on:
   push:
     tags: ['v*']
@@ -20,7 +25,9 @@ jobs:
       - run: npm run fetch-daemons
       - run: npm run build
       - run: npm test
-      - run: npm publish --provenance --access public
+      - run: npm pack
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          files: signalk-masterbus-*.tgz
+      - run: npm publish --provenance --access public
