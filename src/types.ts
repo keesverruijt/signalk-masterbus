@@ -97,7 +97,7 @@ export interface ApplyResult extends MappingResult {
   skipped: number
 }
 
-export type Tier = 'existing' | 'modelFirmware' | 'model' | 'name' | null
+export type Tier = 'existing' | 'modelFirmware' | 'model' | 'name' | 'built' | null
 
 export interface Suggestion {
   path: string

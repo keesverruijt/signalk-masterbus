@@ -7,7 +7,8 @@ const TIER_TEXT: Record<string, string> = {
   existing: 'the current mapping',
   modelFirmware: 'known for this model and firmware',
   model: 'known for this model',
-  name: 'guessed from the device class and field name'
+  name: 'guessed from the device class and field name',
+  built: 'built from the group, field name and unit; check it'
 }
 
 /**

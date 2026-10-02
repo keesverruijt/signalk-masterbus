@@ -6,6 +6,13 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The editor names suggestions of the daemon's new `built` tier (masterbus
+  ≥ 0.4.4): a path put together from the field's group, name and unit where
+  no rule knows the field, shown as "built from the group, field name and
+  unit; check it". With an older daemon nothing changes.
+
 ## [0.2.0] - 2026-09-22
 
 ### Added
