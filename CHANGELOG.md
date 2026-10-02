@@ -6,12 +6,20 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-02
+
+### Changed
+
+- Bundles masterbus 0.4.4. Its suggestions know many more devices
+  (MasterShunts, the MCU combi, digital switching channels, interfaces,
+  isolation transformers), propose camelCase instance ids as the Signal K
+  specification wants them, and pre-fill a path built from the field's
+  group, name and unit where no rule knows the field.
+
 ### Added
 
-- The editor names suggestions of the daemon's new `built` tier (masterbus
-  ≥ 0.4.4): a path put together from the field's group, name and unit where
-  no rule knows the field, shown as "built from the group, field name and
-  unit; check it". With an older daemon nothing changes.
+- The editor names that new `built` suggestion tier: "built from the
+  group, field name and unit; check it".
 
 ## [0.2.0] - 2026-09-22
 
