@@ -30,4 +30,8 @@ jobs:
         with:
           generate_release_notes: true
           files: signalk-masterbus-*.tgz
+      # Trusted publishing (OIDC, no token) needs npm 11.5.1 or later; Node
+      # 22 ships npm 10, which signs the provenance and then publishes with
+      # setup-node's placeholder token, and npm answers 404.
+      - run: npm install -g npm@^11.5.1
       - run: npm publish --provenance --access public
