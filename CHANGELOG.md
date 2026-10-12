@@ -6,6 +6,22 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The schema cache stays on with an explicit transport** (#1). With
+  _Transport_ set to SocketCAN or USB link, the plugin wrote a `config.ini`
+  without `cache_dir`, so the daemon ran without its cache and repeated a
+  full discovery on every Signal K start. The plugin now keeps an existing
+  `cache_dir`, or points it at `cache/` in its data directory, where the
+  daemon puts it on auto-detect.
+- **Auto-detect no longer attaches to the NMEA 2000 bus** (#2). The plugin is
+  enabled by default, and on its first start the daemon took the only CAN
+  interface when no USB link was found; on a Signal K computer that is
+  usually NMEA 2000. Auto-detect now uses a Mastervolt USB link only. With
+  none plugged in the daemon is not started and the status says how to
+  choose SocketCAN. A `config.ini` written by an earlier version is kept as
+  it is.
+
 ## [0.2.1] - 2026-10-02
 
 ### Changed

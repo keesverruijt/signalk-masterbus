@@ -39,13 +39,58 @@ export function resolveBinary(binaryPath: string, from: string = import.meta.url
   return bin
 }
 
+/** Whether a Mastervolt USB link (USB vendor `1a64`) is plugged in, from sysfs. */
+export function usbLinkPresent(root = '/sys/bus/usb/devices'): boolean {
+  let entries: string[]
+  try {
+    entries = fs.readdirSync(root)
+  } catch {
+    return false
+  }
+  return entries.some((e) => {
+    try {
+      return fs.readFileSync(path.join(root, e, 'idVendor'), 'utf8').trim() === '1a64'
+    } catch {
+      return false
+    }
+  })
+}
+
+/** What `renderConfigIni` needs to know about the machine. */
+export interface Host {
+  platform: string
+  usbLink: () => boolean
+}
+
+const HOST: Host = { platform: process.platform, usbLink: () => usbLinkPresent() }
+
+export const NO_USB_LINK =
+  'No Mastervolt USB link found. If the MasterBus is connected through a CAN interface, set ' +
+  'Transport to SocketCAN (Linux) in the plugin settings and enter its name (for example can0) ' +
+  'as Device. Auto-detect does not choose a CAN interface by itself, because on most boats that ' +
+  'is the NMEA 2000 network. With a USB link, plug it in and save the plugin settings again.'
+
 /**
  * The `config.ini` the daemon reads, rendered from the plugin's settings.
  * With transport `auto` and a file already present, the file is left alone:
  * the daemon auto-detected it on first run and the user may have edited it.
  * Ports and the API address are always ours, so those keys are rewritten.
+ *
+ * With `auto` and no file yet, the daemon's own auto-detect would fall back
+ * to the only CAN interface, which on a Signal K computer is usually NMEA
+ * 2000. On Linux, the only place it can, the file is written here instead:
+ * for a USB link if one is plugged in, and otherwise this throws
+ * `NO_USB_LINK` and the daemon is not started.
+ *
+ * A file written here keeps an existing `cache_dir`, or points it at
+ * `cacheDir`: without the key the daemon runs without its schema cache.
  */
-export function renderConfigIni(cfg: BundledConfig, existing: string | null): string | null {
+export function renderConfigIni(
+  cfg: BundledConfig,
+  existing: string | null,
+  cacheDir: string,
+  host: Host = HOST
+): string | null {
   const ownKeys = ['listen', 'api_listen', 'api_token']
   const managed = (body: string): string =>
     body
@@ -61,19 +106,30 @@ export function renderConfigIni(cfg: BundledConfig, existing: string | null): st
     `\n# Managed by the Signal K plugin (signalk-masterbus); edit ports there.\n` +
     `listen = 127.0.0.1:${cfg.streamPort}\n` +
     `api_listen = 127.0.0.1:${cfg.apiPort}\n`
-  if (cfg.transport === 'auto') {
-    if (existing === null) return null // let the daemon auto-detect and write it
-    return `${managed(existing)}\n${ours}`
+  const whole = (transport: 'can' | 'usb', deviceName: string): string => {
+    const hb = cfg.heartbeatMaster.trim()
+    const cache =
+      existing
+        ?.split('\n')
+        .find((line) => /^\s*cache_dir\s*=/.test(line))
+        ?.trim() ?? `cache_dir = ${cacheDir}`
+    return (
+      '# masterbus configuration, written by the Signal K plugin (signalk-masterbus).\n' +
+      '# Transport, device and master role are edited in the plugin settings.\n' +
+      (hb ? `heartbeat_master = ${hb}\n` : '# heartbeat_master = 000001\n') +
+      `device_type = ${transport}\n` +
+      `device_name = ${deviceName}\n` +
+      `${cache}\n` +
+      ours
+    )
   }
-  const hb = cfg.heartbeatMaster.trim()
-  return (
-    '# masterbus configuration, written by the Signal K plugin (signalk-masterbus).\n' +
-    '# Transport, device and master role are edited in the plugin settings.\n' +
-    (hb ? `heartbeat_master = ${hb}\n` : '# heartbeat_master = 000001\n') +
-    `device_type = ${cfg.transport}\n` +
-    `device_name = ${cfg.deviceName.trim()}\n` +
-    ours
-  )
+  if (cfg.transport === 'auto') {
+    if (existing !== null) return `${managed(existing)}\n${ours}`
+    if (host.platform !== 'linux') return null // no CAN fallback: let the daemon detect
+    if (!host.usbLink()) throw new Error(NO_USB_LINK)
+    return whole('usb', '')
+  }
+  return whole(cfg.transport, cfg.deviceName.trim())
 }
 
 export interface DaemonEvents {
@@ -95,6 +151,8 @@ export interface DaemonOptions {
   extraArgs?: string[]
   /** How long to wait for READY before giving up, ms. */
   readyTimeoutMs?: number
+  /** The machine, for `renderConfigIni`; the real one unless a test says. */
+  host?: Host
 }
 
 const KEEP_LINES = 40
@@ -134,7 +192,12 @@ export class DaemonManager {
     fs.mkdirSync(this.opts.dataDir, { recursive: true })
     const ini = path.join(this.opts.dataDir, 'config.ini')
     const existing = fs.existsSync(ini) ? fs.readFileSync(ini, 'utf8') : null
-    const rendered = renderConfigIni(this.opts.config, existing)
+    const rendered = renderConfigIni(
+      this.opts.config,
+      existing,
+      path.join(this.opts.dataDir, 'cache'),
+      this.opts.host
+    )
     if (rendered !== null && rendered !== existing) fs.writeFileSync(ini, rendered)
     const tokenFile = path.join(this.opts.dataDir, 'api-token')
     fs.writeFileSync(tokenFile, this.token, { mode: 0o600 })

@@ -4,7 +4,14 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { DEFAULTS } from '../src/config.js'
-import { DaemonManager, platformDir, renderConfigIni, resolveBinary } from '../src/daemon.js'
+import {
+  DaemonManager,
+  NO_USB_LINK,
+  platformDir,
+  renderConfigIni,
+  resolveBinary,
+  usbLinkPresent
+} from '../src/daemon.js'
 
 const dirs: string[] = []
 function tmp(): string {
@@ -25,19 +32,35 @@ function fakeDaemon(dir: string, body: string): string {
 
 const events = () => ({ log: vi.fn(), exited: vi.fn(), ready: vi.fn() })
 
+const linux = (usbLink: boolean) => ({ platform: 'linux', usbLink: () => usbLink })
+const CACHE = '/data/masterbus/cache'
+
 describe('renderConfigIni', () => {
-  it('leaves an auto-detected file to the daemon, then only manages its own keys', () => {
+  it('leaves an existing auto-detected file alone, apart from its own keys', () => {
     const cfg = { ...DEFAULTS.bundled }
-    expect(renderConfigIni(cfg, null)).toBeNull()
     const existing =
       'device_type = can\ndevice_name = can0\nlisten = 0.0.0.0:3009\n# api_listen = x\n'
-    const out = renderConfigIni(cfg, existing)
+    const out = renderConfigIni(cfg, existing, CACHE, linux(false))
     expect(out).toContain('device_type = can')
     expect(out).toContain('device_name = can0')
     expect(out).not.toContain('0.0.0.0:3009')
     expect(out).toContain('listen = 127.0.0.1:3009')
     expect(out).toContain('api_listen = 127.0.0.1:3010')
     expect(out).not.toContain('api_token')
+    expect(out).not.toContain('cache_dir')
+  })
+
+  it('on first start, auto-detect picks a USB link and never a CAN interface', () => {
+    const cfg = { ...DEFAULTS.bundled }
+    const out = renderConfigIni(cfg, null, CACHE, linux(true))
+    expect(out).toContain('device_type = usb')
+    expect(out).toContain('device_name = \n')
+    expect(out).toContain(`cache_dir = ${CACHE}`)
+    expect(() => renderConfigIni(cfg, null, CACHE, linux(false))).toThrow(NO_USB_LINK)
+    // Elsewhere there is no CAN to fall back to, so the daemon detects.
+    expect(
+      renderConfigIni(cfg, null, CACHE, { platform: 'darwin', usbLink: () => false })
+    ).toBeNull()
   })
 
   it('writes the whole file when the transport is explicit', () => {
@@ -48,13 +71,35 @@ describe('renderConfigIni', () => {
       apiPort: 4010,
       streamPort: 4009
     }
-    const out = renderConfigIni(cfg, 'device_type = can\n')
+    const out = renderConfigIni(cfg, 'device_type = can\n', CACHE, linux(false))
     expect(out).toContain('device_type = usb')
     expect(out).toContain('heartbeat_master = 000001')
     expect(out).toContain('device_name = \n')
     expect(out).toContain('api_listen = 127.0.0.1:4010')
     expect(out).toContain('listen = 127.0.0.1:4009')
     expect(out).not.toContain('device_type = can')
+  })
+
+  it('keeps the schema cache on with an explicit transport', () => {
+    const cfg = { ...DEFAULTS.bundled, transport: 'can' as const, deviceName: 'can1' }
+    expect(renderConfigIni(cfg, null, CACHE)).toContain(`cache_dir = ${CACHE}`)
+    const out = renderConfigIni(cfg, 'device_type = usb\ncache_dir = /var/cache/mb\n', CACHE)
+    expect(out).toContain('cache_dir = /var/cache/mb')
+    expect(out).not.toContain(CACHE)
+  })
+})
+
+describe('usbLinkPresent', () => {
+  it('finds a device with the Mastervolt USB vendor id in sysfs', () => {
+    const root = tmp()
+    expect(usbLinkPresent(path.join(root, 'missing'))).toBe(false)
+    fs.mkdirSync(path.join(root, '1-1'))
+    fs.writeFileSync(path.join(root, '1-1', 'idVendor'), '0bda\n')
+    fs.mkdirSync(path.join(root, 'usb1'))
+    expect(usbLinkPresent(root)).toBe(false)
+    fs.mkdirSync(path.join(root, '1-2'))
+    fs.writeFileSync(path.join(root, '1-2', 'idVendor'), '1a64\n')
+    expect(usbLinkPresent(root)).toBe(true)
   })
 })
 
@@ -95,9 +140,9 @@ describe('DaemonManager', () => {
     await m.start()
     expect(m.running).toBe(true)
     expect(fs.readFileSync(path.join(dir, 'state', 'api-token'), 'utf8')).toBe(m.token)
-    expect(fs.readFileSync(path.join(dir, 'state', 'config.ini'), 'utf8')).toContain(
-      'device_type = usb'
-    )
+    const ini = fs.readFileSync(path.join(dir, 'state', 'config.ini'), 'utf8')
+    expect(ini).toContain('device_type = usb')
+    expect(ini).toContain(`cache_dir = ${path.join(dir, 'state', 'cache')}`)
     await vi.waitFor(() => {
       expect(ev.log).toHaveBeenCalled()
     })
@@ -112,6 +157,23 @@ describe('DaemonManager', () => {
     expect(ev.exited).toHaveBeenCalledWith(null, 'SIGTERM', null)
   })
 
+  it('does not start the daemon when auto-detect finds no USB link', async () => {
+    const dir = tmp()
+    const marker = path.join(dir, 'started')
+    const bin = fakeDaemon(dir, `touch ${marker}\necho READY\nwhile :; do sleep 1; done`)
+    const m = new DaemonManager({
+      binary: bin,
+      dataDir: path.join(dir, 'state'),
+      config: DEFAULTS.bundled,
+      events: events(),
+      host: linux(false)
+    })
+    await expect(m.start()).rejects.toThrow(NO_USB_LINK)
+    expect(m.running).toBe(false)
+    expect(fs.existsSync(marker)).toBe(false)
+    expect(fs.existsSync(path.join(dir, 'state', 'config.ini'))).toBe(false)
+  })
+
   it('rejects when the daemon exits before READY', async () => {
     const dir = tmp()
     const bin = fakeDaemon(dir, 'echo "connect failed: no bus" >&2\nexit 2')
@@ -120,7 +182,8 @@ describe('DaemonManager', () => {
       binary: bin,
       dataDir: path.join(dir, 'state'),
       config: DEFAULTS.bundled,
-      events: ev
+      events: ev,
+      host: linux(true)
     })
     await expect(m.start()).rejects.toThrow('exited with 2 before READY')
     expect(m.recentLog).toEqual(['connect failed: no bus'])
@@ -136,7 +199,8 @@ describe('DaemonManager', () => {
       binary: bin,
       dataDir: path.join(dir, 'state'),
       config: DEFAULTS.bundled,
-      events: ev
+      events: ev,
+      host: linux(true)
     })
     await m.start()
     await vi.waitFor(() => {

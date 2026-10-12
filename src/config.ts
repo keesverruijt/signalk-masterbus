@@ -12,7 +12,7 @@ export type Mode = 'bundled' | 'external'
 export type Transport = 'auto' | 'can' | 'usb'
 
 export interface BundledConfig {
-  /** `auto` lets the daemon detect a USB link or the lone CAN interface. */
+  /** `auto` uses a plugged-in USB link; a CAN interface must be chosen. */
   transport: Transport
   /** CAN interface name, or USB-link serial (blank = first). */
   deviceName: string
@@ -94,8 +94,9 @@ export const SCHEMA = {
           type: 'string',
           title: 'Transport',
           description:
-            'Auto picks a plugged-in Mastervolt USB link, else the only CAN interface. Set it ' +
-            'explicitly when the machine has several.',
+            'Auto-detect uses a plugged-in Mastervolt USB link. It never picks a CAN interface, ' +
+            'because on most boats that is the NMEA 2000 network: for a MasterBus on CAN, choose ' +
+            'SocketCAN and enter the interface as Device.',
           enum: ['auto', 'can', 'usb'],
           enumNames: ['Auto-detect', 'SocketCAN (Linux)', 'Mastervolt USB link'],
           default: 'auto'

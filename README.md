@@ -41,9 +41,12 @@ download. Enable the plugin under **Server → Plugin Config → MasterBus**.
 **Bundled** (the default): the plugin starts `masterbus-signalk` on this
 machine and keeps its configuration, the mapping and the device schema
 cache under `~/.signalk/plugin-config-data/signalk-masterbus/masterbus/`.
-With _Transport_ on auto-detect it picks a plugged-in USB link, else the
-only CAN interface; set it explicitly when the machine has several. Nothing
-listens beyond loopback.
+With _Transport_ on auto-detect it uses a plugged-in Mastervolt USB link.
+It never picks a CAN interface, because on most Signal K computers the CAN
+interface is the NMEA 2000 network: when the MasterBus is on CAN, set
+_Transport_ to SocketCAN and _Device_ to the interface (for example `can1`).
+Without a USB link and with no transport chosen, the daemon is not started
+and the plugin status says so. Nothing listens beyond loopback.
 
 **External**: the machine on the bus is not the one running Signal K. Run
 `masterbus-signalk` there (its systemd unit is in the masterbus release
@@ -77,9 +80,8 @@ mandatory on any address other than loopback; the daemon refuses to start
 without one. Give the plugin the host, the two ports and the same token.
 
 **Going to bundled** needs only the selection, provided the Signal K host
-is the one wired to the bus. Transport on auto-detect picks a plugged-in
-USB link, else the only CAN interface; set it explicitly when the machine
-has several.
+is the one wired to the bus. Transport on auto-detect uses a plugged-in USB
+link; for a MasterBus on CAN, choose SocketCAN and the interface.
 
 Two things are not automatic:
 
