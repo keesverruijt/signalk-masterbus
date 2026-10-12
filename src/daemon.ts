@@ -92,10 +92,12 @@ export function renderConfigIni(
   host: Host = HOST
 ): string | null {
   const ownKeys = ['listen', 'api_listen', 'api_token']
+  const marker = '# Managed by the Signal K plugin (signalk-masterbus); edit ports there.'
   const managed = (body: string): string =>
     body
       .split('\n')
       .filter((line) => {
+        if (line.trim() === marker) return false
         const key = line.split('=')[0]?.trim().replace(/^#\s*/, '')
         return !(key && ownKeys.includes(key))
       })
@@ -103,7 +105,7 @@ export function renderConfigIni(
       .replace(/\n{3,}/g, '\n\n')
       .trimEnd()
   const ours =
-    `\n# Managed by the Signal K plugin (signalk-masterbus); edit ports there.\n` +
+    `\n${marker}\n` +
     `listen = 127.0.0.1:${cfg.streamPort}\n` +
     `api_listen = 127.0.0.1:${cfg.apiPort}\n`
   const whole = (transport: 'can' | 'usb', deviceName: string): string => {

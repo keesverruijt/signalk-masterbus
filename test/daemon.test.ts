@@ -50,6 +50,13 @@ describe('renderConfigIni', () => {
     expect(out).not.toContain('cache_dir')
   })
 
+  it('does not pile up its own comment line over restarts', () => {
+    const cfg = { ...DEFAULTS.bundled }
+    let ini: string | null = 'device_type = can\ndevice_name = can0\n'
+    for (let i = 0; i < 3; i++) ini = renderConfigIni(cfg, ini, CACHE, linux(false))
+    expect(ini?.match(/# Managed by/g)).toHaveLength(1)
+  })
+
   it('on first start, auto-detect picks a USB link and never a CAN interface', () => {
     const cfg = { ...DEFAULTS.bundled }
     const out = renderConfigIni(cfg, null, CACHE, linux(true))
