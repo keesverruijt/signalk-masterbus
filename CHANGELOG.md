@@ -6,6 +6,15 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-14
+
+### Fixed
+
+- Bundles masterbus 0.4.6. On a big bus, a device the daemon first heard
+  after its start-up walk took many minutes to appear (or did not appear at
+  all), and reads from the editor or `masterbus-tui` could wait 20 s or
+  more. Both now take seconds.
+
 ## [0.3.0] - 2026-10-14
 
 ### Added
