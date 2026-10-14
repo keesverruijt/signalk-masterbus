@@ -6,6 +6,18 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-14
+
+### Added
+
+- Bundles masterbus 0.4.5. `masterbus-tui` now works while Signal K runs:
+  the daemon shares the USB link with the masterbus tools on the same
+  computer (same user account), so the plugin no longer has to be stopped
+  to browse devices or edit the mapping. Values arrive about once a
+  second on a big bus (they used to lag up to 3 s), a device that is
+  switched off no longer slows the others down, and fields shown only at
+  installer level that the mapping names are published.
+
 ### Fixed
 
 - **The schema cache stays on with an explicit transport** (#1). With
