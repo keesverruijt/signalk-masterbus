@@ -61,7 +61,9 @@ export default function plugin(app: ServerAPI): Plugin {
     versions: VERSIONS,
     mode: config?.mode ?? null,
     connected: client !== null && lastStatus !== null,
-    daemon: daemon ? { running: daemon.running, recentLog: daemon.recentLog } : null,
+    daemon: daemon
+      ? { running: daemon.running, recentLog: daemon.recentLog, mappingPath: daemon.mappingPath }
+      : null,
     status: lastStatus,
     error: lastError,
     stream: forwarder ? { connected: forwarder.connected, ...forwarder.counts } : null,
@@ -77,11 +79,14 @@ export default function plugin(app: ServerAPI): Plugin {
       s.diagnostics.errors > 0
         ? `; ${s.diagnostics.errors} mapping entr${s.diagnostics.errors === 1 ? 'y' : 'ies'} skipped, see the editor`
         : ''
+    // Said until the plugin restarts, so it is seen at least once.
+    const notice = daemon?.notice ? ` ${daemon.notice}` : ''
     return (
       `${where}: streaming ${s.streaming} field${s.streaming === 1 ? '' : 's'} from ` +
       `${s.mapped.devices} of ${s.devices} device${s.devices === 1 ? '' : 's'}` +
       (s.devices === 0 ? ' (discovering)' : '') +
-      problems
+      problems +
+      notice
     )
   }
 

@@ -39,14 +39,29 @@ download. Enable the plugin under **Server → Plugin Config → MasterBus**.
 ## Two ways to run it
 
 **Bundled** (the default): the plugin starts `masterbus-signalk` on this
-machine and keeps its configuration, the mapping and the device schema
-cache under `~/.signalk/plugin-config-data/signalk-masterbus/masterbus/`.
+machine and keeps its configuration under
+`~/.signalk/plugin-config-data/signalk-masterbus/masterbus/`. The mapping
+and the device schema cache are the ones the masterbus tools use on this
+computer (on Linux `~/.config/masterbus/mapping.json` and
+`~/.cache/masterbus`), so a change made in `masterbus-tui` shows up in
+Signal K within seconds, and one made in the web editor is what the TUI
+shows. _Mapping and schema cache_ set to _Plugin only_ keeps them in the
+plugin's folder instead.
 With _Transport_ on auto-detect it uses a plugged-in Mastervolt USB link.
 It never picks a CAN interface, because on most Signal K computers the CAN
 interface is the NMEA 2000 network: when the MasterBus is on CAN, set
 _Transport_ to SocketCAN and _Device_ to the interface (for example `can1`).
 Without a USB link and with no transport chosen, the daemon is not started
 and the plugin status says so. Nothing listens beyond loopback.
+
+When Signal K runs in a container, its home folder is usually not kept
+when the container is recreated, so the plugin then keeps the mapping in
+its own folder unless _Shared folder_ names one mounted from the host.
+
+Upgrading from a version that kept the mapping in the plugin's folder
+moves it to the shared place. If the tools already had a mapping of their
+own, theirs is used and the plugin's is kept beside it as
+`mapping.plugin-backup.json`; the plugin status says which file is in use.
 
 **External**: the machine on the bus is not the one running Signal K. Run
 `masterbus-signalk` there (its systemd unit is in the masterbus release
@@ -119,9 +134,9 @@ install is not silent; treat it as a starting point. Diagnostics for the
 saved mapping (a field the device does not have, a firmware that moved
 on) are listed under the table.
 
-The file being edited is the daemon's `mapping.json`, the same one
-`masterbus-tui --mapping` edits, so both tools can be used on the same
-install.
+The file being edited is the daemon's `mapping.json`. In bundled mode
+that is the one `masterbus-tui --mapping` edits too (see _Two ways to run
+it_), so both can be used on the same install.
 
 ## Writes and the installer code
 

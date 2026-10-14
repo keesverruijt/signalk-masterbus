@@ -21,6 +21,22 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   none plugged in the daemon is not started and the status says how to
   choose SocketCAN. A `config.ini` written by an earlier version is kept as
   it is.
+- `config.ini` no longer gains a "Managed by the Signal K plugin" comment
+  line on every start.
+
+### Changed
+
+- **The plugin and the masterbus tools share one mapping and schema
+  cache.** In bundled mode the daemon kept a `mapping.json` of its own, so
+  a mapping made in `masterbus-tui` never reached Signal K and the two
+  drifted apart unnoticed. The daemon now reads the tools' `mapping.json`
+  (on Linux `~/.config/masterbus/`) and uses their schema cache, and picks
+  up a change to the file within seconds. On upgrade the plugin's mapping
+  moves there; if the tools already had one, theirs is used and the
+  plugin's is kept as `mapping.plugin-backup.json`, and the status says
+  so. The new _Mapping and schema cache_ setting can keep them in the
+  plugin's folder instead, and _Shared folder_ names another place. In a
+  container the plugin keeps its own unless a shared folder is named.
 
 ## [0.2.1] - 2026-10-02
 

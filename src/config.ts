@@ -10,6 +10,7 @@
 
 export type Mode = 'bundled' | 'external'
 export type Transport = 'auto' | 'can' | 'usb'
+export type Storage = 'shared' | 'plugin'
 
 export interface BundledConfig {
   /** `auto` uses a plugged-in USB link; a CAN interface must be chosen. */
@@ -22,6 +23,10 @@ export interface BundledConfig {
   streamPort: number
   /** A `masterbus-signalk` binary to run instead of the bundled one. */
   binaryPath: string
+  /** Mapping and schema cache: the masterbus tools' own, or the plugin's. */
+  storage: Storage
+  /** The folder shared with the tools; blank = where the tools keep theirs. */
+  sharedDir: string
 }
 
 export interface ExternalConfig {
@@ -47,7 +52,9 @@ export const DEFAULTS: Config = {
     heartbeatMaster: '',
     apiPort: 3010,
     streamPort: 3009,
-    binaryPath: ''
+    binaryPath: '',
+    storage: 'shared',
+    sharedDir: ''
   },
   external: {
     host: 'localhost',
@@ -129,6 +136,26 @@ export const SCHEMA = {
           default: 3009,
           minimum: 1,
           maximum: 65535
+        },
+        storage: {
+          type: 'string',
+          title: 'Mapping and schema cache',
+          description:
+            'Shared: use the same mapping.json and schema cache as masterbus-tui and the other ' +
+            'masterbus tools on this computer, so a change made in one shows up in the other. ' +
+            "Plugin only: keep them in the plugin's data folder. When Signal K runs in a " +
+            'container, sharing needs the folder below.',
+          enum: ['shared', 'plugin'],
+          enumNames: ['Shared with the masterbus tools', 'Plugin only'],
+          default: 'shared'
+        },
+        sharedDir: {
+          type: 'string',
+          title: 'Shared folder (advanced)',
+          description:
+            'Leave blank to use the folder the masterbus tools use (on Linux ' +
+            '~/.config/masterbus). In a container, enter a folder mounted from the host.',
+          default: ''
         },
         binaryPath: {
           type: 'string',

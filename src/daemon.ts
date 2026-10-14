@@ -6,6 +6,7 @@ import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
 
 import type { BundledConfig } from './config.js'
+import { adoptMapping, ENV, inContainer, toolsCacheDir, toolsDir, type Env } from './shared.js'
 
 /** The directory under `bin/` that carries this platform's daemon. */
 export function platformDir(
@@ -84,14 +85,17 @@ export const NO_USB_LINK =
  *
  * A file written here keeps an existing `cache_dir`, or points it at
  * `cacheDir`: without the key the daemon runs without its schema cache.
+ * With `sharedCache` the cache is the one shared with the masterbus tools,
+ * and `cache_dir` is always ours.
  */
 export function renderConfigIni(
   cfg: BundledConfig,
   existing: string | null,
   cacheDir: string,
-  host: Host = HOST
+  host: Host = HOST,
+  sharedCache = false
 ): string | null {
-  const ownKeys = ['listen', 'api_listen', 'api_token']
+  const ownKeys = ['listen', 'api_listen', 'api_token', ...(sharedCache ? ['cache_dir'] : [])]
   const marker = '# Managed by the Signal K plugin (signalk-masterbus); edit ports there.'
   const managed = (body: string): string =>
     body
@@ -106,22 +110,24 @@ export function renderConfigIni(
       .trimEnd()
   const ours =
     `\n${marker}\n` +
+    (sharedCache ? `cache_dir = ${cacheDir}\n` : '') +
     `listen = 127.0.0.1:${cfg.streamPort}\n` +
     `api_listen = 127.0.0.1:${cfg.apiPort}\n`
   const whole = (transport: 'can' | 'usb', deviceName: string): string => {
     const hb = cfg.heartbeatMaster.trim()
-    const cache =
-      existing
-        ?.split('\n')
-        .find((line) => /^\s*cache_dir\s*=/.test(line))
-        ?.trim() ?? `cache_dir = ${cacheDir}`
+    const cache = sharedCache
+      ? null
+      : (existing
+          ?.split('\n')
+          .find((line) => /^\s*cache_dir\s*=/.test(line))
+          ?.trim() ?? `cache_dir = ${cacheDir}`)
     return (
       '# masterbus configuration, written by the Signal K plugin (signalk-masterbus).\n' +
       '# Transport, device and master role are edited in the plugin settings.\n' +
       (hb ? `heartbeat_master = ${hb}\n` : '# heartbeat_master = 000001\n') +
       `device_type = ${transport}\n` +
       `device_name = ${deviceName}\n` +
-      `${cache}\n` +
+      (cache ? `${cache}\n` : '') +
       ours
     )
   }
@@ -145,7 +151,8 @@ export interface DaemonEvents {
 
 export interface DaemonOptions {
   binary: string
-  /** Where config.ini, mapping.json and the schema cache live. */
+  /** The plugin's data folder: config.ini, the token, and the mapping and
+   * cache unless they are shared with the masterbus tools. */
   dataDir: string
   config: BundledConfig
   events: DaemonEvents
@@ -155,6 +162,33 @@ export interface DaemonOptions {
   readyTimeoutMs?: number
   /** The machine, for `renderConfigIni`; the real one unless a test says. */
   host?: Host
+  /** Where the masterbus tools keep their files; the real ones unless a test says. */
+  env?: Env
+}
+
+/** Where the daemon's mapping and schema cache are. */
+export interface Storage {
+  mapping: string
+  cache: string
+  shared: boolean
+}
+
+/**
+ * The mapping and cache for these settings: the tools' (or the folder
+ * named) when shared, the plugin's data folder otherwise. In a container
+ * without a folder named, the plugin's: its home folder isn't kept.
+ */
+export function storageFor(cfg: BundledConfig, dataDir: string, env: Env = ENV): Storage {
+  const named = cfg.sharedDir.trim()
+  if (cfg.storage === 'shared' && (named || !inContainer(env))) {
+    const dir = named || toolsDir(env)
+    return { mapping: path.join(dir, 'mapping.json'), cache: toolsCacheDir(dir, env), shared: true }
+  }
+  return {
+    mapping: path.join(dataDir, 'mapping.json'),
+    cache: path.join(dataDir, 'cache'),
+    shared: false
+  }
 }
 
 const KEEP_LINES = 40
@@ -173,6 +207,8 @@ export class DaemonManager {
   private backoffMs = 1000
   private readonly recent: string[] = []
   private generation = 0
+  private storage: Storage | null = null
+  private moved: string | null = null
 
   constructor(opts: DaemonOptions) {
     this.opts = opts
@@ -182,6 +218,16 @@ export class DaemonManager {
   /** The last lines the daemon wrote to stderr, for an error status. */
   get recentLog(): string[] {
     return [...this.recent]
+  }
+
+  /** The mapping file the daemon reads and the editor writes. */
+  get mappingPath(): string | null {
+    return this.storage?.mapping ?? null
+  }
+
+  /** What became of the plugin's own mapping when sharing began, if anything. */
+  get notice(): string | null {
+    return this.moved
   }
 
   get running(): boolean {
@@ -194,12 +240,18 @@ export class DaemonManager {
     fs.mkdirSync(this.opts.dataDir, { recursive: true })
     const ini = path.join(this.opts.dataDir, 'config.ini')
     const existing = fs.existsSync(ini) ? fs.readFileSync(ini, 'utf8') : null
+    const storage = storageFor(this.opts.config, this.opts.dataDir, this.opts.env)
+    this.storage = storage
     const rendered = renderConfigIni(
       this.opts.config,
       existing,
-      path.join(this.opts.dataDir, 'cache'),
-      this.opts.host
+      storage.cache,
+      this.opts.host,
+      storage.shared
     )
+    if (storage.shared) {
+      this.moved = adoptMapping(path.join(this.opts.dataDir, 'mapping.json'), storage.mapping)
+    }
     if (rendered !== null && rendered !== existing) fs.writeFileSync(ini, rendered)
     const tokenFile = path.join(this.opts.dataDir, 'api-token')
     fs.writeFileSync(tokenFile, this.token, { mode: 0o600 })
@@ -224,7 +276,12 @@ export class DaemonManager {
       let settled = false
       const child = spawn(this.opts.binary, args, {
         stdio: ['ignore', 'pipe', 'pipe'],
-        env: { ...process.env, RUST_LOG: process.env.RUST_LOG ?? 'warn' }
+        env: {
+          ...process.env,
+          RUST_LOG: process.env.RUST_LOG ?? 'warn',
+          // The daemon reads its mapping from here instead of beside config.ini.
+          ...(this.storage?.shared ? { MAPPING: this.storage.mapping } : {})
+        }
       })
       this.child = child
       const timeout = setTimeout(() => {

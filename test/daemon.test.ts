@@ -12,6 +12,7 @@ import {
   resolveBinary,
   usbLinkPresent
 } from '../src/daemon.js'
+import type { Env } from '../src/shared.js'
 
 const dirs: string[] = []
 function tmp(): string {
@@ -33,7 +34,21 @@ function fakeDaemon(dir: string, body: string): string {
 const events = () => ({ log: vi.fn(), exited: vi.fn(), ready: vi.fn() })
 
 const linux = (usbLink: boolean) => ({ platform: 'linux', usbLink: () => usbLink })
+
+/** A Linux machine whose home folder is `home`; nothing outside it exists. */
+function fakeEnv(home: string): Env {
+  const inside = (p: string) => p.startsWith(home)
+  return {
+    platform: 'linux',
+    home,
+    vars: {},
+    isFile: (p) => inside(p) && fs.existsSync(p) && fs.statSync(p).isFile(),
+    isDir: (p) => inside(p) && fs.existsSync(p) && fs.statSync(p).isDirectory()
+  }
+}
 const CACHE = '/data/masterbus/cache'
+/** Mapping and cache in the plugin's data folder: tests never touch the real home folder. */
+const PLUGIN = { ...DEFAULTS.bundled, storage: 'plugin' as const }
 
 describe('renderConfigIni', () => {
   it('leaves an existing auto-detected file alone, apart from its own keys', () => {
@@ -97,6 +112,21 @@ describe('renderConfigIni', () => {
 })
 
 describe('usbLinkPresent', () => {
+  it('points the cache at the shared one, whatever the file said', () => {
+    const shared = '/home/pi/.cache/masterbus'
+    const existing = 'device_type = usb\ncache_dir = /data/masterbus/cache\n'
+    for (const transport of ['auto', 'usb'] as const) {
+      const out = renderConfigIni(
+        { ...DEFAULTS.bundled, transport },
+        existing,
+        shared,
+        linux(true),
+        true
+      )
+      expect(out?.match(/^cache_dir = .*$/gm)).toEqual([`cache_dir = ${shared}`])
+    }
+  })
+
   it('finds a device with the Mastervolt USB vendor id in sysfs', () => {
     const root = tmp()
     expect(usbLinkPresent(path.join(root, 'missing'))).toBe(false)
@@ -140,7 +170,7 @@ describe('DaemonManager', () => {
     const m = new DaemonManager({
       binary: bin,
       dataDir: path.join(dir, 'state'),
-      config: { ...DEFAULTS.bundled, transport: 'usb' },
+      config: { ...PLUGIN, transport: 'usb' },
       events: ev,
       extraArgs: ['--fake-bus']
     })
@@ -164,6 +194,38 @@ describe('DaemonManager', () => {
     expect(ev.exited).toHaveBeenCalledWith(null, 'SIGTERM', null)
   })
 
+  it('shares the mapping with the masterbus tools and hands it to the daemon', async () => {
+    const dir = tmp()
+    const home = path.join(dir, 'home')
+    const state = path.join(dir, 'state')
+    fs.mkdirSync(state, { recursive: true })
+    fs.writeFileSync(path.join(state, 'mapping.json'), '{"version":1,"devices":{}}')
+    const bin = fakeDaemon(
+      dir,
+      'echo "mapping: $MAPPING" >&2\necho READY\nwhile :; do sleep 1; done'
+    )
+    const ev = events()
+    const m = new DaemonManager({
+      binary: bin,
+      dataDir: state,
+      config: { ...DEFAULTS.bundled, transport: 'usb' },
+      events: ev,
+      env: fakeEnv(home)
+    })
+    await m.start()
+    const shared = path.join(home, '.config', 'masterbus', 'mapping.json')
+    expect(m.mappingPath).toBe(shared)
+    expect(fs.readFileSync(shared, 'utf8')).toBe('{"version":1,"devices":{}}')
+    expect(fs.existsSync(path.join(state, 'mapping.json'))).toBe(false)
+    expect(m.notice).toContain(shared)
+    const ini = fs.readFileSync(path.join(state, 'config.ini'), 'utf8')
+    expect(ini).toContain(`cache_dir = ${path.join(home, '.cache', 'masterbus')}`)
+    await vi.waitFor(() => {
+      expect(ev.log).toHaveBeenCalledWith(`mapping: ${shared}`)
+    })
+    await m.stop()
+  })
+
   it('does not start the daemon when auto-detect finds no USB link', async () => {
     const dir = tmp()
     const marker = path.join(dir, 'started')
@@ -171,7 +233,7 @@ describe('DaemonManager', () => {
     const m = new DaemonManager({
       binary: bin,
       dataDir: path.join(dir, 'state'),
-      config: DEFAULTS.bundled,
+      config: PLUGIN,
       events: events(),
       host: linux(false)
     })
@@ -188,7 +250,7 @@ describe('DaemonManager', () => {
     const m = new DaemonManager({
       binary: bin,
       dataDir: path.join(dir, 'state'),
-      config: DEFAULTS.bundled,
+      config: PLUGIN,
       events: ev,
       host: linux(true)
     })
@@ -205,7 +267,7 @@ describe('DaemonManager', () => {
     const m = new DaemonManager({
       binary: bin,
       dataDir: path.join(dir, 'state'),
-      config: DEFAULTS.bundled,
+      config: PLUGIN,
       events: ev,
       host: linux(true)
     })
