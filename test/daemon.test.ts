@@ -109,6 +109,13 @@ describe('renderConfigIni', () => {
     expect(out).toContain('cache_dir = /var/cache/mb')
     expect(out).not.toContain(CACHE)
   })
+
+  it("keeps the daemon's bus_id when the file is written again", () => {
+    const cfg = { ...DEFAULTS.bundled, transport: 'can' as const, deviceName: 'can1' }
+    const out = renderConfigIni(cfg, 'device_type = usb\nbus_id = 1C02A4F7\n', CACHE)
+    expect(out).toContain('bus_id = 1C02A4F7')
+    expect(renderConfigIni(cfg, null, CACHE)).not.toContain('bus_id')
+  })
 })
 
 describe('usbLinkPresent', () => {

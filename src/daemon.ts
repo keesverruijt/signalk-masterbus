@@ -83,7 +83,8 @@ export const NO_USB_LINK =
  * for a USB link if one is plugged in, and otherwise this throws
  * `NO_USB_LINK` and the daemon is not started.
  *
- * A file written here keeps an existing `cache_dir`, or points it at
+ * A file written here keeps the daemon's `bus_id`, and an existing
+ * `cache_dir`, or points it at
  * `cacheDir`: without the key the daemon runs without its schema cache.
  * With `sharedCache` the cache is the one shared with the masterbus tools,
  * and `cache_dir` is always ours.
@@ -121,6 +122,12 @@ export function renderConfigIni(
           ?.split('\n')
           .find((line) => /^\s*cache_dir\s*=/.test(line))
           ?.trim() ?? `cache_dir = ${cacheDir}`)
+    // The daemon makes up its own BusID on first run and adds it here; it
+    // must survive the file being written again.
+    const busId = existing
+      ?.split('\n')
+      .find((line) => /^\s*bus_id\s*=/.test(line))
+      ?.trim()
     return (
       '# masterbus configuration, written by the Signal K plugin (signalk-masterbus).\n' +
       '# Transport, device and master role are edited in the plugin settings.\n' +
@@ -128,6 +135,7 @@ export function renderConfigIni(
       `device_type = ${transport}\n` +
       `device_name = ${deviceName}\n` +
       (cache ? `${cache}\n` : '') +
+      (busId ? `${busId}\n` : '') +
       ours
     )
   }
