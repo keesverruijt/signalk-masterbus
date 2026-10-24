@@ -129,4 +129,27 @@ describe('adoptMapping', () => {
     expect(adoptMapping(own, shared)).not.toContain('backup')
     expect(fs.readdirSync(path.join(dir, 'tools'))).toEqual(['mapping.json'])
   })
+
+  it('leaves the mapping alone when the tools folder is a link to the plugin folder', () => {
+    const dir = tmp()
+    const plugin = path.join(dir, 'plugin')
+    fs.mkdirSync(plugin)
+    fs.writeFileSync(path.join(plugin, 'mapping.json'), 'CURATED')
+    fs.symlinkSync(plugin, path.join(dir, 'tools'), 'dir')
+    const own = path.join(plugin, 'mapping.json')
+    expect(adoptMapping(own, path.join(dir, 'tools', 'mapping.json'))).toBeNull()
+    expect(fs.readFileSync(own, 'utf8')).toBe('CURATED')
+  })
+
+  it('leaves the mapping alone when it is hard-linked into the tools folder', () => {
+    const dir = tmp()
+    const own = path.join(dir, 'own.json')
+    const shared = path.join(dir, 'tools', 'mapping.json')
+    fs.mkdirSync(path.dirname(shared))
+    fs.writeFileSync(own, 'CURATED')
+    fs.linkSync(own, shared)
+    expect(adoptMapping(own, shared)).toBeNull()
+    expect(fs.readFileSync(shared, 'utf8')).toBe('CURATED')
+    expect(fs.existsSync(own)).toBe(true)
+  })
 })
