@@ -111,7 +111,8 @@ export const BACKUP = 'mapping.plugin-backup.json'
 /** Whether `a` and `b` are one file, through a symlink or a hard link. */
 function sameFile(a: string, b: string): boolean {
   try {
-    const [x, y] = [fs.statSync(a), fs.statSync(b)]
+    // bigint: a Windows file id is 64 bits, more than a number holds exactly.
+    const [x, y] = [fs.statSync(a, { bigint: true }), fs.statSync(b, { bigint: true })]
     return x.dev === y.dev && x.ino === y.ino
   } catch {
     return false
