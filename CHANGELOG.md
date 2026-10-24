@@ -6,6 +6,13 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Updating from 0.2.x no longer deletes `mapping.json` when the masterbus
+  tools' folder is a link to the plugin's data folder. The plugin took the
+  two paths for two copies of the same mapping and removed one, which was
+  the only one. Thanks to @Peter-Petrik for the diagnosis and the fix. (#3)
+
 ## [0.3.1] - 2026-10-14
 
 ### Fixed

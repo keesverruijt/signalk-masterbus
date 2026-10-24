@@ -108,16 +108,29 @@ export function inContainer(env: Env = ENV): boolean {
 
 export const BACKUP = 'mapping.plugin-backup.json'
 
+/** Whether `a` and `b` are one file, through a symlink or a hard link. */
+function sameFile(a: string, b: string): boolean {
+  try {
+    // bigint: a Windows file id is 64 bits, more than a number holds exactly.
+    const [x, y] = [fs.statSync(a, { bigint: true }), fs.statSync(b, { bigint: true })]
+    return x.dev === y.dev && x.ino === y.ino
+  } catch {
+    return false
+  }
+}
+
 /**
  * Move the mapping the plugin kept for itself (`own`) to the shared one
  * (`shared`). Without a shared mapping it simply moves there; with the same
  * one, the plugin's copy goes. With a different one, the shared mapping wins
  * and the plugin's is kept beside it as `mapping.plugin-backup.json`
- * (numbered if that name is taken), so nobody's work is lost. Returns a sentence for the plugin status, or null when there
- * was nothing to move.
+ * (numbered if that name is taken), so nobody's work is lost. When the two
+ * are one file (a tools folder linked to the plugin's, #3), it stays put.
+ * Returns a sentence for the plugin status, or null when there was nothing to
+ * move.
  */
 export function adoptMapping(own: string, shared: string): string | null {
-  if (!fs.existsSync(own)) return null
+  if (!fs.existsSync(own) || sameFile(own, shared)) return null
   fs.mkdirSync(path.dirname(shared), { recursive: true })
   if (!fs.existsSync(shared)) {
     fs.copyFileSync(own, shared)
