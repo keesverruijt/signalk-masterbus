@@ -6,6 +6,9 @@ import { Editor } from './Editor.js'
 
 const NOTIFY_STATES: NotifyState[] = ['alert', 'warn', 'alarm', 'emergency']
 
+/** How long after a failed device fetch the editor tries again. */
+const RETRY_OPEN_MS = 10_000
+
 function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
@@ -98,13 +101,15 @@ export function App() {
 
   // The first time a device is opened, the daemon asks it for its eventable
   // outputs and adds the ones no menu lists (an APR's Stop charge), so they
-  // can be mapped. Asked once per device; a failure is tried again on the
-  // next open.
+  // can be mapped. Asked once per device; a failure is tried again after
+  // RETRY_OPEN_MS while the device stays open.
   const opened = useRef(new Set<string>())
+  const [retryOpen, setRetryOpen] = useState(0)
   useEffect(() => {
     if (selected === null || opened.current.has(selected)) return
     const serial = selected
     opened.current.add(serial)
+    let retry: ReturnType<typeof setTimeout> | undefined
     api
       .device(serial)
       .then((d) => {
@@ -112,8 +117,14 @@ export function App() {
       })
       .catch(() => {
         opened.current.delete(serial)
+        retry = setTimeout(() => {
+          setRetryOpen((n) => n + 1)
+        }, RETRY_OPEN_MS)
       })
-  }, [selected])
+    return () => {
+      clearTimeout(retry)
+    }
+  }, [selected, retryOpen])
   const dm = device && mapping ? mapping.devices[device.serial] : undefined
 
   const entryOf = (f: Field): FieldMapping | undefined => dm?.fields[f.id]
