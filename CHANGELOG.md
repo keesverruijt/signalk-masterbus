@@ -6,6 +6,15 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The mapping editor shows a device's **eventable outputs**: what other
+  devices' events switch, such as an alternator regulator's `Stop charge`,
+  including ones no menu lists. Ticking "accept PUTs" on one lets Signal K
+  switch it **on**. Switching it **off** needs a second tick, because the
+  batteries use the same output for their own protection. Needs the
+  masterbus daemon from masterbus#37. (masterbus#29)
+
 ### Fixed
 
 - Updating from 0.2.x no longer deletes `mapping.json` when the masterbus

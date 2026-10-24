@@ -15,7 +15,8 @@ const TIER_TEXT: Record<string, string> = {
  * The per-field editor: a path, validated by the daemon on every change so
  * the conversion (°C → K) or the refusal is visible before saving; a truth
  * table for an enum on a boolean leaf; a notification table for an enum with
- * alarm-like labels; invert; and the PUT flag on a writable field.
+ * alarm-like labels; invert; and the PUT flag on a writable field or an
+ * eventable output, with the separate permission to switch an output off.
  */
 export function Editor(props: {
   device: Device
@@ -31,6 +32,10 @@ export function Editor(props: {
   const [truth, setTruth] = useState<Record<string, boolean>>(existing?.truth ?? {})
   const [notify, setNotify] = useState<Record<string, NotifyState>>(existing?.notify ?? {})
   const [put, setPut] = useState(existing?.put ?? false)
+  const [allowOff, setAllowOff] = useState(existing?.allow_off ?? false)
+  // An output only events can switch: a PUT switches it the way an event
+  // does, on always and off only with permission.
+  const eventOnly = field.output === true && !field.writable
   const [origin, setOrigin] = useState<string>(existing ? 'the current mapping' : '')
   const [validation, setValidation] = useState<Validation | null>(null)
   const [loading, setLoading] = useState(!existing)
@@ -67,6 +72,7 @@ export function Editor(props: {
     if (Object.keys(truth).length > 0) e.truth = truth
     if (Object.keys(notify).length > 0) e.notify = notify
     if (put) e.put = true
+    if (put && eventOnly && allowOff) e.allow_off = true
     return e
   }
 
@@ -270,6 +276,35 @@ export function Editor(props: {
             />
             accept PUTs from Signal K on this path (a switch in Signal K sets this field)
           </label>
+        )}
+        {eventOnly && (
+          <>
+            <label className="row">
+              <input
+                type="checkbox"
+                checked={put}
+                onChange={(e) => {
+                  setPut(e.target.checked)
+                }}
+              />
+              accept PUTs from Signal K on this path: Signal K can switch this output on, the way
+              another device&apos;s event does
+            </label>
+            {put && (
+              <label className="row">
+                <input
+                  type="checkbox"
+                  checked={allowOff}
+                  onChange={(e) => {
+                    setAllowOff(e.target.checked)
+                  }}
+                />
+                also let Signal K switch it off. Other devices&apos; events drive this output too,
+                so switching it off can undo what one of them asked for, such as a battery stopping
+                the charge to protect itself.
+              </label>
+            )}
+          </>
         )}
         <div className="actions">
           <button onClick={onCancel}>Cancel</button>
