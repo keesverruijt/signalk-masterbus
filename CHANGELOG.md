@@ -6,17 +6,33 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-25
+
 ### Added
 
 - The mapping editor shows a device's **eventable outputs**: what other
   devices' events switch, such as an alternator regulator's `Stop charge`,
   including ones no menu lists. Ticking "accept PUTs" on one lets Signal K
   switch it **on**. Switching it **off** needs a second tick, because the
-  batteries use the same output for their own protection. Needs the
-  masterbus daemon from masterbus#37. (masterbus#29)
+  batteries use the same output for their own protection. Bundles
+  masterbus 0.5.0, which does the switching. (masterbus#29)
+
+### Changed
+
+- Bundles masterbus 0.5.0. A switch (a CombiMaster's inverter or charger,
+  a DC distributor's output) is now sent in the daemon's own name: it makes
+  up a bus id of its own on first start, in a device class no Mastervolt
+  product uses, and keeps it in its `config.ini` as `bus_id`. Before, it
+  borrowed the id of the MasterAdjust setup the switch was first captured
+  from. The plugin keeps that `bus_id` when it writes `config.ini` again.
 
 ### Fixed
 
+- Bundles masterbus 0.5.0. On a Raspberry Pi 3, starting the daemon no
+  longer disturbs the Pi's USB controller: it used to read debug files that
+  dump the controller's registers and run a register test, three times per
+  start (#4). A ChargeMaster Plus that reports an impossible number of
+  fields no longer stalls its discovery (masterbus#6).
 - Updating from 0.2.x no longer deletes `mapping.json` when the masterbus
   tools' folder is a link to the plugin's data folder. The plugin took the
   two paths for two copies of the same mapping and removed one, which was
