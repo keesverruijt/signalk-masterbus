@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { Device, Diagnostic, Field, FieldMapping, Mapping, NotifyState } from '../src/types.js'
 import { api, type Summary } from './api.js'
 import { Editor } from './Editor.js'
 
 const NOTIFY_STATES: NotifyState[] = ['alert', 'warn', 'alarm', 'emergency']
+
+/** How long after a failed device fetch the editor tries again. */
+const RETRY_OPEN_MS = 10_000
 
 function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
@@ -95,6 +98,33 @@ export function App() {
   }, [load])
 
   const device = devices.find((d) => d.serial === selected) ?? null
+
+  // The first time a device is opened, the daemon asks it for its eventable
+  // outputs and adds the ones no menu lists (an APR's Stop charge), so they
+  // can be mapped. Asked once per device; a failure is tried again after
+  // RETRY_OPEN_MS while the device stays open.
+  const opened = useRef(new Set<string>())
+  const [retryOpen, setRetryOpen] = useState(0)
+  useEffect(() => {
+    if (selected === null || opened.current.has(selected)) return
+    const serial = selected
+    opened.current.add(serial)
+    let retry: ReturnType<typeof setTimeout> | undefined
+    api
+      .device(serial)
+      .then((d) => {
+        setDevices((cur) => cur.map((x) => (x.serial === d.serial ? d : x)))
+      })
+      .catch(() => {
+        opened.current.delete(serial)
+        retry = setTimeout(() => {
+          setRetryOpen((n) => n + 1)
+        }, RETRY_OPEN_MS)
+      })
+    return () => {
+      clearTimeout(retry)
+    }
+  }, [selected, retryOpen])
   const dm = device && mapping ? mapping.devices[device.serial] : undefined
 
   const entryOf = (f: Field): FieldMapping | undefined => dm?.fields[f.id]
@@ -422,6 +452,11 @@ function FieldRows(props: {
               {f.name}
               {f.options.length > 0 && <span className="tag">enum</span>}
               {f.writable && <span className="tag">writable</span>}
+              {f.output === true && (
+                <span className="tag" title="Other devices' events switch this">
+                  output
+                </span>
+              )}
             </td>
             <td>{f.unit}</td>
             <td className="num">
@@ -442,6 +477,7 @@ function FieldRows(props: {
               {e?.path ?? <span className="sev-info">—</span>}
               {e?.invert && <span className="tag">invert</span>}
               {e?.put && <span className="tag">put</span>}
+              {e?.allow_off && <span className="tag">off allowed</span>}
               {e && Object.keys(e.notify ?? {}).length > 0 && <span className="tag">notify</span>}
             </td>
             <td>

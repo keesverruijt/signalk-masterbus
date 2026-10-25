@@ -34,6 +34,13 @@ export interface Field {
   /** The mapped Signal K path, or null. */
   path: string | null
   put: boolean
+  /**
+   * One of the device's eventable outputs, which other devices' events
+   * switch (an APR's `Stop charge`). Absent from an older daemon.
+   */
+  output?: boolean
+  /** From the mapping: a PUT may also switch the output off. */
+  allowOff?: boolean
   /** Last value seen, in the device's own unit, or null. */
   value: unknown
 }
@@ -59,6 +66,12 @@ export interface FieldMapping {
   truth?: Record<string, boolean>
   notify?: Record<string, NotifyState>
   put?: boolean
+  /**
+   * On an eventable output that is not writable: let a PUT switch it off as
+   * well as on. Without it the daemon refuses off, because the device's own
+   * events drive the output too (a battery's protection asserts `Stop charge`).
+   */
+  allow_off?: boolean
 }
 
 export interface DeviceMapping {
