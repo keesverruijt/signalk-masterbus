@@ -39,6 +39,12 @@ export interface Field {
    * switch (an APR's `Stop charge`). Absent from an older daemon.
    */
   output?: boolean
+  /**
+   * An output a PUT switches the way an event does: on always, off only with
+   * `allow_off`. Every output except a writable field without options (a
+   * plain switch like a DSD channel). Absent from an older daemon.
+   */
+  eventOnly?: boolean
   /** From the mapping: a PUT may also switch the output off. */
   allowOff?: boolean
   /** Last value seen, in the device's own unit, or null. */
