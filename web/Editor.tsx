@@ -33,9 +33,10 @@ export function Editor(props: {
   const [notify, setNotify] = useState<Record<string, NotifyState>>(existing?.notify ?? {})
   const [put, setPut] = useState(existing?.put ?? false)
   const [allowOff, setAllowOff] = useState(existing?.allow_off ?? false)
-  // An output only events can switch: a PUT switches it the way an event
-  // does, on always and off only with permission.
-  const eventOnly = field.output === true && !field.writable
+  // An output events drive: a PUT switches it the way an event does, on
+  // always and off only with permission. The daemon says which outputs are;
+  // an older one only guarded outputs it could not write.
+  const eventOnly = field.eventOnly ?? (field.output === true && !field.writable)
   const [origin, setOrigin] = useState<string>(existing ? 'the current mapping' : '')
   const [validation, setValidation] = useState<Validation | null>(null)
   const [loading, setLoading] = useState(!existing)
@@ -104,7 +105,10 @@ export function Editor(props: {
     }
   }, [path, invert, truth, notify, put, device.serial, field.id])
 
-  const isEnum = field.options.length > 0
+  // An enum whose labels are all empty (an APR's outputs) says only off or
+  // on, and publishes true/false without a truth table.
+  const unlabeled = field.options.length > 0 && field.options.every((l) => l.trim() === '')
+  const isEnum = field.options.length > 0 && !unlabeled
   const needsTruth =
     isEnum &&
     (validation?.ok === false
@@ -194,7 +198,7 @@ export function Editor(props: {
           />
         </label>
         {hint()}
-        {(field.options.length === 0 || showTruth) && (
+        {(!isEnum || showTruth) && (
           <label className="row">
             <input
               type="checkbox"
@@ -265,7 +269,7 @@ export function Editor(props: {
             </div>
           </>
         )}
-        {field.writable && (
+        {field.writable && !eventOnly && (
           <label className="row">
             <input
               type="checkbox"

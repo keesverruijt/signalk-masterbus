@@ -6,6 +6,15 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- An alternator regulator's outputs, such as `Stop charge`, now get the
+  "also let Signal K switch it off" box. The regulator reports them as
+  writable, so 0.4.0 offered only the ordinary PUT box, which switched them
+  off as readily as on. The editor now follows the daemon's `eventOnly`
+  mark (masterbus#41). Options without labels no longer show as an enum.
+  Thanks to @Peter-Petrik. (masterbus#29)
+
 ## [0.4.0] - 2026-10-25
 
 ### Added

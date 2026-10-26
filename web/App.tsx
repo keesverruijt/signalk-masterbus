@@ -450,7 +450,7 @@ function FieldRows(props: {
             <td>{f.group}</td>
             <td>
               {f.name}
-              {f.options.length > 0 && <span className="tag">enum</span>}
+              {f.options.some((l) => l.trim() !== '') && <span className="tag">enum</span>}
               {f.writable && <span className="tag">writable</span>}
               {f.output === true && (
                 <span className="tag" title="Other devices' events switch this">
