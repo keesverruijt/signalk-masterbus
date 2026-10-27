@@ -6,6 +6,21 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-27
+
+### Fixed
+
+- Bundles masterbus 0.5.2:
+  - **A slow device's settings are read completely.** Some devices, such
+    as a ChargeMaster Plus, answer some of the daemon's questions late
+    while it reads their settings. Each start could then show a different
+    set of settings, with some missing. Late answers are now kept, and
+    the daemon asks once more for what is missing (masterbus#6).
+  - Settings already saved in the schema cache are not read again. To get
+    the complete list, delete the device's files from the cache folder
+    (on Linux `~/.cache/masterbus`, or the plugin's folder with _Plugin
+    only_; see the README) and restart Signal K.
+
 ## [0.4.1] - 2026-10-27
 
 ### Fixed
