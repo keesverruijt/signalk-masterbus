@@ -6,8 +6,20 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-27
+
 ### Fixed
 
+- Bundles masterbus 0.5.1:
+  - **Stop charge stays protected.** An alternator regulator's
+    `Stop charge` can't be switched off from Signal K unless the mapping
+    allows it, and reads as on/off (masterbus#29).
+  - **The USB link comes back after it is unplugged.** The daemon used to
+    stop receiving until Signal K was restarted (masterbus#39).
+  - **Faster start.** After a restart, each device streams as soon as it
+    is identified instead of after the whole bus, so values and switches
+    come back sooner on a big bus. An empty mapping file is no longer
+    refilled with guesses (masterbus#40).
 - An alternator regulator's outputs, such as `Stop charge`, now get the
   "also let Signal K switch it off" box. The regulator reports them as
   writable, so 0.4.0 offered only the ordinary PUT box, which switched them
