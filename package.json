@@ -1,7 +1,7 @@
 {
   "name": "signalk-masterbus",
-  "version": "0.4.1",
-  "masterbusDaemon": "0.5.1",
+  "version": "0.4.2",
+  "masterbusDaemon": "0.5.2",
   "description": "Mastervolt MasterBus for Signal K: publish battery, charger and inverter values, edit the mapping in the browser, and switch devices from Signal K",
   "main": "plugin/index.js",
   "type": "module",
