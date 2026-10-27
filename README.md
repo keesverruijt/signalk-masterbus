@@ -159,6 +159,21 @@ named by `masterbusDaemon` in `package.json` and unpacks the daemon for
 each platform into `bin/`; `--current` fetches only this machine's. It
 runs automatically before `npm publish`.
 
+### Releasing
+
+Bump `version` (and `masterbusDaemon`, to bundle a new masterbus) in
+`package.json`, date the CHANGELOG, commit, then tag `vX.Y.Z` and push the
+tag: the `publish` workflow makes the GitHub release with the tarball.
+Publishing to npm needs your two-factor login, so it is done by hand:
+
+```sh
+make publish-dry   # what would be uploaded, from the tag
+make publish       # logs in if needed, publishes the tag, returns to your branch
+```
+
+`make publish` refuses a dirty tree, a version without a tag, and a version
+that is already on npm.
+
 To run against a daemon without hardware, build masterbus with the
 `fake-bus` feature:
 
