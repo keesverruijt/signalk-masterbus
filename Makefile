@@ -31,7 +31,14 @@ publish: preflight
 	@back=$$(git symbolic-ref -q --short HEAD || git rev-parse HEAD); \
 	  git checkout -q "$(TAG)" && $(NPM) publish --access public; status=$$?; \
 	  git checkout -q "$$back"; exit $$status
-	@echo "on npm: $(PKG)@$$($(NPM) view $(PKG)@$(VERSION) version)"
+	@echo "published; npm can take a few minutes to list it. Waiting..."
+	@for i in $$(seq 1 15); do \
+	  $(NPM) view "$(PKG)@$(VERSION)" version --fetch-timeout=10000 --fetch-retries=0 \
+	    >/dev/null 2>&1 \
+	    && { echo "on npm: $(PKG)@$(VERSION)"; exit 0; }; \
+	  sleep 10; \
+	done; \
+	echo "not listed yet; check later with: npm view $(PKG)@$(VERSION) version"
 
 # What publish would upload, from the tag, without uploading.
 publish-dry: preflight
