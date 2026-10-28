@@ -17,6 +17,11 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The daemon's start-up lines are in the Signal K server log.** Each
+  device's line when it is identified and when its values start streaming,
+  with the seconds since the start, appeared only with the plugin's debug
+  log turned on. They now show in the Server Log without it, together with
+  the daemon's warnings (masterbus#40).
 - **A device's Signal K instance no longer follows the last field you
   map.** A device can publish under two places, such as a regulator's
   readings under `electrical.alternators.alt-110a` and its `Stop charge`

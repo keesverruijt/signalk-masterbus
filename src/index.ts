@@ -135,8 +135,12 @@ export default function plugin(app: ServerAPI): Plugin {
         dataDir,
         config: cfg.bundled,
         events: {
+          // The daemon is started with RUST_LOG=warn, so its stderr holds
+          // its own lines on start-up, mapping reloads and clients, none of
+          // them periodic, and warnings. They go to the server log, which shows them without
+          // the plugin's debug log on (masterbus#40).
           log: (line) => {
-            app.debug(`daemon: ${line}`)
+            console.log(`signalk-masterbus: ${line.replace(/^masterbus-signalk: /, '')}`)
           },
           exited: (code, signal, restartIn) => {
             const why = `the daemon exited (${code ?? signal ?? '?'})`
