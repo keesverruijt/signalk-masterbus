@@ -16,6 +16,9 @@ NPM ?= npm
 PKG     := $(shell node -p "require('./package.json').name")
 VERSION ?= $(shell node -p "require('./package.json').version")
 TAG     := v$(VERSION)
+# A version with a suffix (0.5.0-beta.1) goes to npm under the `beta` tag,
+# so `npm install` and the Signal K app store keep the last release.
+DIST_TAG := $(if $(findstring -,$(VERSION)),beta,latest)
 
 .PHONY: publish publish-dry check help
 
@@ -27,9 +30,9 @@ TAG     := v$(VERSION)
 # returns to where you were, also when the publish fails.
 publish: preflight
 	@$(NPM) whoami >/dev/null 2>&1 || $(NPM) login
-	@echo "publishing $(PKG)@$(VERSION) from $(TAG) as $$($(NPM) whoami)"
+	@echo "publishing $(PKG)@$(VERSION) from $(TAG) as $$($(NPM) whoami), tag $(DIST_TAG)"
 	@back=$$(git symbolic-ref -q --short HEAD || git rev-parse HEAD); \
-	  git checkout -q "$(TAG)" && $(NPM) publish --access public; status=$$?; \
+	  git checkout -q "$(TAG)" && $(NPM) publish --access public --tag $(DIST_TAG); status=$$?; \
 	  git checkout -q "$$back"; exit $$status
 	@echo "published; npm can take a few minutes to list it. Waiting..."
 	@for i in $$(seq 1 15); do \
@@ -43,7 +46,7 @@ publish: preflight
 # What publish would upload, from the tag, without uploading.
 publish-dry: preflight
 	@back=$$(git symbolic-ref -q --short HEAD || git rev-parse HEAD); \
-	  git checkout -q "$(TAG)" && $(NPM) publish --access public --dry-run; status=$$?; \
+	  git checkout -q "$(TAG)" && $(NPM) publish --access public --tag $(DIST_TAG) --dry-run; status=$$?; \
 	  git checkout -q "$$back"; exit $$status
 
 .PHONY: preflight
