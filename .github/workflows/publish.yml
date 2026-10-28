@@ -17,6 +17,13 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      # The release and npm tags are taken from the git tag, and npm
+      # publishes package.json's version: they must be the same.
+      - name: The tag is the package version
+        run: |
+          want="v$(node -p "require('./package.json').version")"
+          [ "$GITHUB_REF_NAME" = "$want" ] \
+            || { echo "tag $GITHUB_REF_NAME is not $want"; exit 1; }
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -30,8 +37,13 @@ jobs:
         with:
           generate_release_notes: true
           files: signalk-masterbus-*.tgz
+          prerelease: ${{ contains(github.ref_name, '-') }}
       # Trusted publishing (OIDC, no token) needs npm 11.5.1 or later; Node
       # 22 ships npm 10, which signs the provenance and then publishes with
       # setup-node's placeholder token, and npm answers 404.
       - run: npm install -g npm@^11.5.1
-      - run: npm publish --provenance --access public
+      # As in the Makefile: a version with a suffix (v0.5.0-beta.1) goes to
+      # the `beta` tag, so installs and the app store keep the last release.
+      - run: npm publish --provenance --access public --tag "$DIST_TAG"
+        env:
+          DIST_TAG: ${{ contains(github.ref_name, '-') && 'beta' || 'latest' }}

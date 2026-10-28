@@ -6,6 +6,14 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **The editor shows a device's four tabs: Monitoring, Alarms, History and
+  Configuration.** masterbus now reads devices the way MasterAdjust does;
+  Configuration has the device's real settings, Alarms and History are
+  new, and the "Service" menu, which no device has, is gone. Load the
+  extra tabs with the buttons above a device's fields (masterbus#6).
+
 ### Added
 
 - **A firmware warning can be cleared from the editor.** After a device's
