@@ -6,6 +6,13 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0-beta.1] - 2026-10-28
+
+A beta, bundling masterbus 0.6.0-beta.1. Install it with
+`npm install signalk-masterbus@beta` in the Signal K folder; the app store
+keeps offering 0.4.2. Every device's menus are read from the bus again on
+the first start.
+
 ### Changed
 
 - **The editor shows a device's four tabs: Monitoring, Alarms, History and
@@ -36,6 +43,10 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   under `electrical.switches.alt-110a-stop-charge`. Mapping the switch made
   the editor propose new fields under `alt-110a-stop-charge`. It now keeps
   the instance most of the device's fields use (masterbus#47).
+- Bundles masterbus 0.6.0-beta.1, which also keeps more of a slow
+  device's late answers: a group's field count, option labels, and the
+  rest of a name, so a ChargeMaster Plus no longer shows "Outp" for
+  "Output 2" (masterbus#6).
 
 ## [0.4.2] - 2026-10-27
 
