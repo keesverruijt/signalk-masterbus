@@ -6,6 +6,24 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **A firmware warning can be cleared from the editor.** After a device's
+  firmware is updated, the editor warns that its mapping was written for
+  the old version. Once you have checked that its mapped fields still show
+  the right names and values, click _Checked: record firmware …_ next to
+  the warning and Save. Until now only the TUI or a hand edit of the
+  mapping file could clear it (masterbus#46).
+
+### Fixed
+
+- **A device's Signal K instance no longer follows the last field you
+  map.** A device can publish under two places, such as a regulator's
+  readings under `electrical.alternators.alt-110a` and its `Stop charge`
+  under `electrical.switches.alt-110a-stop-charge`. Mapping the switch made
+  the editor propose new fields under `alt-110a-stop-charge`. It now keeps
+  the instance most of the device's fields use (masterbus#47).
+
 ## [0.4.2] - 2026-10-27
 
 ### Fixed

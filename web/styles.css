@@ -220,6 +220,14 @@ table.fields td.num {
 .sev-info {
   color: var(--muted);
 }
+.diag button.inline {
+  margin-left: 8px;
+  padding: 1px 8px;
+  font-size: inherit;
+}
+.diag .checked {
+  color: var(--muted);
+}
 .modal-bg {
   position: fixed;
   inset: 0;

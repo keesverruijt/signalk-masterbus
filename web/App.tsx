@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Device, Diagnostic, Field, FieldMapping, Mapping, NotifyState } from '../src/types.js'
 import { api, type Summary } from './api.js'
 import { Editor } from './Editor.js'
+import { mainInstance } from './mapping.js'
 
 const NOTIFY_STATES: NotifyState[] = ['alert', 'warn', 'alarm', 'emergency']
 
@@ -147,12 +148,15 @@ export function App() {
         )
       } else {
         existing.fields[field] = entry
-        // Record the instance the path actually uses, as the TUI does, so a
-        // later "apply to article" substitutes the right segment.
-        const seg = entry.path.split('.')
-        if (seg[0] === 'electrical' && seg.length > 3)
-          existing.instance = seg[2] ?? existing.instance
       }
+      // Record the instance the paths actually use, as the TUI does, so
+      // proposals and "apply to article" build on the right one: the one
+      // most of the device's paths use (masterbus#47).
+      existing.instance =
+        mainInstance(
+          Object.values(existing.fields).map((f) => f.path),
+          existing.instance
+        ) ?? existing.instance
       if (Object.keys(existing.fields).length === 0) {
         next.devices = Object.fromEntries(
           Object.entries(next.devices).filter(([k]) => k !== serial)
@@ -190,6 +194,38 @@ export function App() {
 
   const discard = () => {
     if (saved) setMapping(clone(saved))
+  }
+
+  /**
+   * The firmware a device runs, when its saved mapping was written for
+   * another one: what the daemon's firmware warning is about.
+   */
+  const newFirmware = (serial: string): string | undefined => {
+    const recorded = saved?.devices[serial]?.firmware
+    const live = devices.find((d) => d.serial === serial)?.firmware
+    return recorded && live && recorded !== live ? live : undefined
+  }
+
+  /**
+   * Mark a device's mapping as checked against the firmware it runs now:
+   * record its live identity, as mapping a field does, so the warning goes
+   * once this is saved (masterbus#46).
+   */
+  const recordFirmware = (serial: string) => {
+    const dev = devices.find((d) => d.serial === serial)
+    if (!dev) return
+    setMapping((cur) => {
+      const entry = cur?.devices[serial]
+      if (!cur || !entry) return cur
+      const next = clone(cur)
+      next.devices[serial] = {
+        ...entry,
+        article: dev.article,
+        firmware: dev.firmware,
+        name: dev.name
+      }
+      return next
+    })
   }
 
   const applyArticle = async () => {
@@ -401,6 +437,15 @@ export function App() {
                     {d.device || d.serial}
                     {d.field ? ` ${d.field}` : ''}
                     {d.path ? ` → ${d.path}` : ''}: {d.message}
+                    {d.severity === 'warning' && !d.field && newFirmware(d.serial) && (
+                      <FirmwareCheck
+                        firmware={newFirmware(d.serial) ?? ''}
+                        recorded={mapping?.devices[d.serial]?.firmware === newFirmware(d.serial)}
+                        onCheck={() => {
+                          recordFirmware(d.serial)
+                        }}
+                      />
+                    )}
                   </li>
                 ))}
               </ul>
@@ -424,6 +469,24 @@ export function App() {
         />
       )}
     </div>
+  )
+}
+
+/**
+ * The way out of a firmware warning: once the mapped fields have been checked
+ * against the new firmware, record it. Takes effect on Save, like any edit.
+ */
+function FirmwareCheck(props: { firmware: string; recorded: boolean; onCheck: () => void }) {
+  if (props.recorded)
+    return <span className="checked"> Firmware {props.firmware} recorded; Save to clear this.</span>
+  return (
+    <button
+      className="inline"
+      title="Every mapped field still shows the right name, unit and value"
+      onClick={props.onCheck}
+    >
+      Checked: record firmware {props.firmware}
+    </button>
   )
 }
 
