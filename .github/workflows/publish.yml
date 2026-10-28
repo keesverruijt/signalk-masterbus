@@ -17,6 +17,13 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      # The release and npm tags are taken from the git tag, and npm
+      # publishes package.json's version: they must be the same.
+      - name: The tag is the package version
+        run: |
+          want="v$(node -p "require('./package.json').version")"
+          [ "$GITHUB_REF_NAME" = "$want" ] \
+            || { echo "tag $GITHUB_REF_NAME is not $want"; exit 1; }
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
