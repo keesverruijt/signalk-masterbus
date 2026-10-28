@@ -224,9 +224,10 @@ table.fields td.num {
   margin-left: 8px;
   padding: 1px 8px;
   font-size: inherit;
+  color: var(--text);
 }
 .diag .checked {
-  color: var(--muted);
+  color: var(--text);
 }
 .modal-bg {
   position: fixed;
