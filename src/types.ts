@@ -6,7 +6,7 @@
 
 export const API_VERSION = 1
 
-export type Menu = 'monitoring' | 'configuration' | 'service'
+export type Menu = 'monitoring' | 'alarm' | 'history' | 'configuration'
 
 export interface Status {
   apiVersion: number

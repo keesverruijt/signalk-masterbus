@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import type { Device, Diagnostic, Field, FieldMapping, Mapping, NotifyState } from '../src/types.js'
+import type {
+  Device,
+  Diagnostic,
+  Field,
+  FieldMapping,
+  Mapping,
+  Menu,
+  NotifyState
+} from '../src/types.js'
 import { api, type Summary } from './api.js'
 import { Editor } from './Editor.js'
 import { mainInstance } from './mapping.js'
@@ -250,7 +258,7 @@ export function App() {
     }
   }
 
-  const loadMenu = async (menu: 'configuration' | 'service') => {
+  const loadMenu = async (menu: Exclude<Menu, 'monitoring'>) => {
     if (!device) return
     setBusy(`Discovering ${menu}…`)
     try {
@@ -293,7 +301,8 @@ export function App() {
     )
   }
 
-  const menus: Array<Field['menu']> = ['monitoring', 'configuration', 'service']
+  const menus: Menu[] = ['monitoring', 'alarm', 'history', 'configuration']
+  const loadable: Array<Exclude<Menu, 'monitoring'>> = ['configuration', 'alarm', 'history']
   const fieldsByMenu = (d: Device) =>
     menus
       .map((m) => [m, d.fields.filter((f) => f.menu === m)] as const)
@@ -373,11 +382,13 @@ export function App() {
                   {device.serial} · {device.id}
                 </span>
                 <span className="spacer" />
-                {!device.menus.includes('configuration') && (
-                  <button onClick={() => void loadMenu('configuration')} disabled={busy !== null}>
-                    Load configuration fields
-                  </button>
-                )}
+                {loadable
+                  .filter((m) => !device.menus.includes(m))
+                  .map((m) => (
+                    <button key={m} onClick={() => void loadMenu(m)} disabled={busy !== null}>
+                      Load {m} fields
+                    </button>
+                  ))}
                 <button
                   onClick={() => void applyArticle()}
                   disabled={busy !== null || dirty || !dm || Object.keys(dm.fields).length === 0}
