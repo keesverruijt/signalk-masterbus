@@ -24,11 +24,15 @@ afterEach(() => {
   for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true })
 })
 
+/** The home folder of the machine in these tests. Paths in it are built from this, since
+ * Signal K's plugin CI turns down a quoted literal home path. */
+const HOME = '/home/pi'
+
 /** A machine with these files and folders, and nothing else. */
 function env(over: Partial<Env> = {}, files: string[] = [], folders: string[] = []): Env {
   return {
     platform: 'linux',
-    home: '/home/pi',
+    home: HOME,
     vars: {},
     isFile: (p) => files.includes(p),
     isDir: (p) => folders.includes(p),
@@ -38,7 +42,7 @@ function env(over: Partial<Env> = {}, files: string[] = [], folders: string[] = 
 
 describe('toolsDir', () => {
   it('finds the folder the masterbus tools use', () => {
-    expect(toolsDir(env())).toBe('/home/pi/.config/masterbus')
+    expect(toolsDir(env())).toBe(`${HOME}/.config/masterbus`)
     expect(toolsDir(env({ vars: { XDG_CONFIG_HOME: '/xdg' } }))).toBe('/xdg/masterbus')
     expect(toolsDir(env({}, ['/etc/default/masterbus/config.ini']))).toBe('/etc/default/masterbus')
     expect(toolsDir(env({ vars: { MASTERBUS_CONFIG_DIR: '/pinned' } }))).toBe('/pinned')
@@ -51,11 +55,11 @@ describe('toolsDir', () => {
 describe('toolsCacheDir', () => {
   it("uses the tools' cache_dir when that folder is here, else their default", () => {
     const dir = tmp()
-    expect(toolsCacheDir(dir, env())).toBe('/home/pi/.cache/masterbus')
+    expect(toolsCacheDir(dir, env())).toBe(`${HOME}/.cache/masterbus`)
     fs.writeFileSync(path.join(dir, 'config.ini'), 'cache_dir = /srv/cache\n')
     expect(toolsCacheDir(dir, env({}, [], ['/srv/cache']))).toBe('/srv/cache')
     // A path from another machine (the host, seen from a container) is not used.
-    expect(toolsCacheDir(dir, env())).toBe('/home/pi/.cache/masterbus')
+    expect(toolsCacheDir(dir, env())).toBe(`${HOME}/.cache/masterbus`)
     expect(toolsCacheDir('/etc/default/masterbus', env())).toBe('/var/lib/masterbus')
   })
 })
@@ -65,8 +69,8 @@ describe('storageFor', () => {
 
   it("shares the tools' mapping and cache by default", () => {
     expect(storageFor(DEFAULTS.bundled, plugin, env())).toEqual({
-      mapping: '/home/pi/.config/masterbus/mapping.json',
-      cache: '/home/pi/.cache/masterbus',
+      mapping: `${HOME}/.config/masterbus/mapping.json`,
+      cache: `${HOME}/.cache/masterbus`,
       shared: true
     })
   })

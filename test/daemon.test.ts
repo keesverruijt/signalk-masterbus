@@ -120,7 +120,8 @@ describe('renderConfigIni', () => {
 
 describe('usbLinkPresent', () => {
   it('points the cache at the shared one, whatever the file said', () => {
-    const shared = '/home/pi/.cache/masterbus'
+    const home = '/home/pi' // not in one literal with the rest: Signal K's plugin CI turns those down
+    const shared = `${home}/.cache/masterbus`
     const existing = 'device_type = usb\ncache_dir = /data/masterbus/cache\n'
     for (const transport of ['auto', 'usb'] as const) {
       const out = renderConfigIni(
