@@ -12,7 +12,11 @@ afterEach(() => {
 
 function listen(onConnection: (socket: net.Socket) => void): Promise<number> {
   return new Promise((resolve) => {
-    server = net.createServer(onConnection)
+    server = net.createServer((socket) => {
+      // a client that goes away mid-connection resets it (Windows reports that)
+      socket.on('error', () => {})
+      onConnection(socket)
+    })
     server.listen(0, '127.0.0.1', () => {
       resolve((server?.address() as net.AddressInfo).port)
     })
@@ -88,8 +92,10 @@ describe('StreamForwarder', () => {
       expect(connections).toBeGreaterThanOrEqual(2)
     })
     f.stop()
+    // a connection the OS accepted just before stop() may reach the server just after it
+    await new Promise((r) => setTimeout(r, 40))
     const seen = connections
-    await new Promise((r) => setTimeout(r, 60))
+    await new Promise((r) => setTimeout(r, 100))
     expect(connections).toBe(seen)
   })
 

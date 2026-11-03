@@ -6,7 +6,15 @@ import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
 
 import type { BundledConfig } from './config.js'
-import { adoptMapping, ENV, inContainer, toolsCacheDir, toolsDir, type Env } from './shared.js'
+import {
+  adoptMapping,
+  ENV,
+  inContainer,
+  pathFor,
+  toolsCacheDir,
+  toolsDir,
+  type Env
+} from './shared.js'
 
 /** The directory under `bin/` that carries this platform's daemon. */
 export function platformDir(
@@ -187,14 +195,15 @@ export interface Storage {
  * without a folder named, the plugin's: its home folder isn't kept.
  */
 export function storageFor(cfg: BundledConfig, dataDir: string, env: Env = ENV): Storage {
+  const p = pathFor(env)
   const named = cfg.sharedDir.trim()
   if (cfg.storage === 'shared' && (named || !inContainer(env))) {
     const dir = named || toolsDir(env)
-    return { mapping: path.join(dir, 'mapping.json'), cache: toolsCacheDir(dir, env), shared: true }
+    return { mapping: p.join(dir, 'mapping.json'), cache: toolsCacheDir(dir, env), shared: true }
   }
   return {
-    mapping: path.join(dataDir, 'mapping.json'),
-    cache: path.join(dataDir, 'cache'),
+    mapping: p.join(dataDir, 'mapping.json'),
+    cache: p.join(dataDir, 'cache'),
     shared: false
   }
 }

@@ -7,16 +7,29 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  check:
+  # Signal K server's reusable plugin CI: build once, then tests on Linux (x64 and arm64), macOS
+  # and Windows on every supported Node, the format check, and the plugin loaded in a running
+  # Signal K server.
+  plugin:
+    # Pinned: the called workflow runs with this repository's token. Dependabot bumps it.
+    uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@15c5e79758799dd826c053eda8f09b0248706ebd # master
+    with:
+      # engines.node is >=22; 26 is the current release
+      node-versions: '["22", "24", "26"]'
+      format-check-command: npm run format:check
+      enable-signalk-integration: true
+
+  # The plugin CI runs lint but lets it fail; here it blocks.
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
       - run: npm install --no-audit --no-fund
       - run: npm run lint
-      - run: npm run format:check
-      - run: npm run build
-      - run: npm test
