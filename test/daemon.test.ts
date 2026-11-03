@@ -157,7 +157,7 @@ describe('resolveBinary', () => {
     // Resolved relative to the plugin's compiled code: <root>/plugin/daemon.js
     // looks in <root>/bin/<os>-<arch>/.
     const from = `file://${path.join(dir, 'plugin', 'daemon.js')}`
-    expect(() => resolveBinary('', from)).toThrow(`bin/${platformDir()}`)
+    expect(() => resolveBinary('', from)).toThrow(path.join('bin', platformDir()))
     const bundled = path.join(dir, 'bin', platformDir())
     fs.mkdirSync(bundled, { recursive: true })
     const exe = process.platform === 'win32' ? 'masterbus-signalk.exe' : 'masterbus-signalk'
@@ -167,8 +167,11 @@ describe('resolveBinary', () => {
   })
 })
 
+// The fake daemons are shell scripts, which Windows cannot run (spawn EFTYPE).
+const itSpawns = it.skipIf(process.platform === 'win32')
+
 describe('DaemonManager', () => {
-  it('writes config and token, spawns with --config-dir, and resolves on READY', async () => {
+  itSpawns('writes config and token, spawns with --config-dir, and resolves on READY', async () => {
     const dir = tmp()
     const bin = fakeDaemon(
       dir,
@@ -202,7 +205,7 @@ describe('DaemonManager', () => {
     expect(ev.exited).toHaveBeenCalledWith(null, 'SIGTERM', null)
   })
 
-  it('shares the mapping with the masterbus tools and hands it to the daemon', async () => {
+  itSpawns('shares the mapping with the masterbus tools and hands it to the daemon', async () => {
     const dir = tmp()
     const home = path.join(dir, 'home')
     const state = path.join(dir, 'state')
@@ -251,7 +254,7 @@ describe('DaemonManager', () => {
     expect(fs.existsSync(path.join(dir, 'state', 'config.ini'))).toBe(false)
   })
 
-  it('rejects when the daemon exits before READY', async () => {
+  itSpawns('rejects when the daemon exits before READY', async () => {
     const dir = tmp()
     const bin = fakeDaemon(dir, 'echo "connect failed: no bus" >&2\nexit 2')
     const ev = events()
@@ -267,7 +270,7 @@ describe('DaemonManager', () => {
     await m.stop()
   })
 
-  it('restarts with backoff after a crash, and not after stop()', async () => {
+  itSpawns('restarts with backoff after a crash, and not after stop()', async () => {
     const dir = tmp()
     // Ready, then die after a moment. Every run does the same.
     const bin = fakeDaemon(dir, 'echo READY\nsleep 0.1\nexit 1')

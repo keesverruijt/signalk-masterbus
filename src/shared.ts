@@ -46,21 +46,27 @@ export const ENV: Env = {
  * tools' own rule: `$MASTERBUS_CONFIG_DIR`; on Linux the system folder when
  * it has a `config.ini`; otherwise the per-user configuration folder.
  */
+/** Paths joined the way `env`'s platform does, whatever machine this runs on (tests pretend). */
+export function pathFor(env: Env): path.PlatformPath {
+  return env.platform === 'win32' ? path.win32 : path.posix
+}
+
 export function toolsDir(env: Env = ENV): string {
+  const p = pathFor(env)
   const pinned = env.vars.MASTERBUS_CONFIG_DIR?.trim()
   if (pinned) return pinned
   switch (env.platform) {
     case 'linux': {
       if (env.isFile('/etc/default/masterbus/config.ini')) return '/etc/default/masterbus'
       const xdg = env.vars.XDG_CONFIG_HOME?.trim()
-      return path.join(xdg || path.join(env.home, '.config'), 'masterbus')
+      return p.join(xdg || p.join(env.home, '.config'), 'masterbus')
     }
     case 'darwin':
-      return path.join(env.home, 'Library', 'Application Support', 'masterbus')
+      return p.join(env.home, 'Library', 'Application Support', 'masterbus')
     case 'win32':
-      return path.join(env.vars.APPDATA ?? path.join(env.home, 'AppData', 'Roaming'), 'masterbus')
+      return p.join(env.vars.APPDATA ?? p.join(env.home, 'AppData', 'Roaming'), 'masterbus')
     default:
-      return path.join(env.home, '.config', 'masterbus')
+      return p.join(env.home, '.config', 'masterbus')
   }
 }
 
@@ -69,31 +75,32 @@ export function toolsDir(env: Env = ENV): string {
  * `config.ini` when that folder exists here, else the tools' default.
  */
 export function toolsCacheDir(dir: string, env: Env = ENV): string {
+  const p = pathFor(env)
   let ini = ''
   try {
-    ini = fs.readFileSync(path.join(dir, 'config.ini'), 'utf8')
+    ini = fs.readFileSync(p.join(dir, 'config.ini'), 'utf8')
   } catch {
     // No config.ini: the default below.
   }
   const set = /^\s*cache_dir\s*=\s*(.+?)\s*$/m.exec(ini)?.[1]
   if (set && env.isDir(set)) return set
-  if (env.vars.MASTERBUS_CONFIG_DIR?.trim()) return path.join(dir, 'cache')
+  if (env.vars.MASTERBUS_CONFIG_DIR?.trim()) return p.join(dir, 'cache')
   if (dir.startsWith('/etc/')) return '/var/lib/masterbus'
   switch (env.platform) {
     case 'linux': {
       const xdg = env.vars.XDG_CACHE_HOME?.trim()
-      return path.join(xdg || path.join(env.home, '.cache'), 'masterbus')
+      return p.join(xdg || p.join(env.home, '.cache'), 'masterbus')
     }
     case 'darwin':
-      return path.join(env.home, 'Library', 'Caches', 'masterbus')
+      return p.join(env.home, 'Library', 'Caches', 'masterbus')
     case 'win32':
-      return path.join(
-        env.vars.LOCALAPPDATA ?? path.join(env.home, 'AppData', 'Local'),
+      return p.join(
+        env.vars.LOCALAPPDATA ?? p.join(env.home, 'AppData', 'Local'),
         'masterbus',
         'cache'
       )
     default:
-      return path.join(dir, 'cache')
+      return p.join(dir, 'cache')
   }
 }
 
