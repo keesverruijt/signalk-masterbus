@@ -258,16 +258,23 @@ export function App() {
     }
   }
 
+  // A tab the daemon has not read yet comes back within a few seconds,
+  // with or without its fields: a large one goes on being read in the
+  // background while the bus carries on with everything else, and is
+  // listed under `loading` until it is in. The regular refresh picks it up,
+  // so nothing else in the editor waits for it.
+  const [asking, setAsking] = useState<string | null>(null)
   const loadMenu = async (menu: Exclude<Menu, 'monitoring'>) => {
     if (!device) return
-    setBusy(`Discovering ${menu}…`)
+    const key = `${device.serial}:${menu}`
+    setAsking(key)
     try {
       const d = await api.device(device.serial, menu)
       setDevices((cur) => cur.map((x) => (x.serial === d.serial ? d : x)))
     } catch (e) {
       setError(errMsg(e))
     } finally {
-      setBusy(null)
+      setAsking((cur) => (cur === key ? null : cur))
     }
   }
 
@@ -384,11 +391,24 @@ export function App() {
                 <span className="spacer" />
                 {loadable
                   .filter((m) => !device.menus.includes(m))
-                  .map((m) => (
-                    <button key={m} onClick={() => void loadMenu(m)} disabled={busy !== null}>
-                      Load {m} fields
-                    </button>
-                  ))}
+                  .map((m) => {
+                    const reading =
+                      (device.loading ?? []).includes(m) || asking === `${device.serial}:${m}`
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => void loadMenu(m)}
+                        disabled={busy !== null || reading}
+                        title={
+                          reading
+                            ? 'The daemon reads this tab in the background; this can take a few minutes. Everything else keeps working meanwhile.'
+                            : undefined
+                        }
+                      >
+                        {reading ? `Loading ${m} fields…` : `Load ${m} fields`}
+                      </button>
+                    )
+                  })}
                 <button
                   onClick={() => void applyArticle()}
                   disabled={busy !== null || dirty || !dm || Object.keys(dm.fields).length === 0}
