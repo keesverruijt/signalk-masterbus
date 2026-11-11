@@ -6,6 +6,13 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The daemon stops when Signal K stops**, even when Signal K is killed
+  rather than shut down. Before, it could keep running and hold the USB
+  link, so the next start could not open it. Needs a masterbus daemon that
+  knows `MASTERBUS_EXIT_WITH_STDIN`; an older one ignores it.
+
 ## [0.5.0-beta.1] - 2026-10-28
 
 A beta, bundling masterbus 0.6.0-beta.1. Install it with
