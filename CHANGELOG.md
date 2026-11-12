@@ -6,6 +6,14 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Loading a tab no longer blocks the editor.** A large Alarms, History or
+  Configuration tab can take minutes to read. Its button now shows
+  "Loading … fields…" while the daemon reads it in the background, the rest
+  of the editor stays usable, and the fields appear on the next refresh.
+  Needs a masterbus daemon that reports `loading` (masterbus#40).
+
 ### Fixed
 
 - **The daemon stops when Signal K stops**, even when Signal K is killed

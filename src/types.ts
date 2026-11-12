@@ -60,6 +60,8 @@ export interface Device {
   firmware: string
   instance: string
   menus: Menu[]
+  /** Tabs the daemon is still reading in the background (from 0.6.0-beta.2). */
+  loading?: Menu[]
   mapped: number
   fields: Field[]
 }
