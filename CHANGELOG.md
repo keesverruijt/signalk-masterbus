@@ -6,6 +6,12 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0-beta.2] - 2026-11-12
+
+A beta, bundling masterbus 0.6.0-beta.2. Install it with
+`npm install signalk-masterbus@beta` in the Signal K folder; the app store
+keeps offering 0.4.2.
+
 ### Changed
 
 - **Loading a tab no longer blocks the editor.** A large Alarms, History or
@@ -13,6 +19,9 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   "Loading … fields…" while the daemon reads it in the background, the rest
   of the editor stays usable, and the fields appear on the next refresh.
   Needs a masterbus daemon that reports `loading` (masterbus#40).
+- Bundles masterbus 0.6.0-beta.2: on a big bus the devices are identified
+  five at a time, so values start sooner, and reading a tab no longer holds
+  up the values sent to Signal K (masterbus#40).
 
 ### Fixed
 
@@ -20,6 +29,9 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   rather than shut down. Before, it could keep running and hold the USB
   link, so the next start could not open it. Needs a masterbus daemon that
   knows `MASTERBUS_EXIT_WITH_STDIN`; an older one ignores it.
+- Bundles masterbus 0.6.0-beta.2, which reads AC units reported as
+  "A(rms)" and "V(rms)" as A and V: no more "unknown unit" warning for each
+  of them at every start (masterbus#40).
 
 ## [0.5.0-beta.1] - 2026-10-28
 
