@@ -283,9 +283,14 @@ export class DaemonManager {
     return new Promise<void>((resolve, reject) => {
       let settled = false
       const child = spawn(this.opts.binary, args, {
-        stdio: ['ignore', 'pipe', 'pipe'],
+        // stdin is a pipe nobody writes to. It closes when this process
+        // goes away, however that happens (a crash, SIGKILL, a container
+        // stop), and MASTERBUS_EXIT_WITH_STDIN tells the daemon to exit
+        // then, so no orphaned daemon keeps holding the USB link.
+        stdio: ['pipe', 'pipe', 'pipe'],
         env: {
           ...process.env,
+          MASTERBUS_EXIT_WITH_STDIN: '1',
           RUST_LOG: process.env.RUST_LOG ?? 'warn',
           // The daemon reads its mapping from here instead of beside config.ini.
           ...(this.storage?.shared ? { MAPPING: this.storage.mapping } : {})
@@ -298,7 +303,10 @@ export class DaemonManager {
         reject(new Error(`the daemon did not report READY within ${this.readyTimeout() / 1000} s`))
       }, this.readyTimeout())
 
-      // Both pipes exist: stdio is ['ignore', 'pipe', 'pipe'] above.
+      // Never written to, but an error on it (the daemon gone) must not
+      // become an uncaught exception.
+      child.stdin.on('error', () => {})
+      // Both pipes exist: stdio is ['pipe', 'pipe', 'pipe'] above.
       readline
         .createInterface({ input: child.stdout as NodeJS.ReadableStream })
         .on('line', (line) => {
